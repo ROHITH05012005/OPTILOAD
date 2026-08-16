@@ -9,7 +9,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         {children}
       </main>
       <footer className="bg-slate-900 dark:bg-black text-slate-400 dark:text-slate-500 py-6 text-center text-sm">
-        <p>&copy; {new Date().getFullYear()} CargoLens XR. Optimized for efficiency.</p>
+        <p>&copy; {new Date().getFullYear()} LogiLoad. Optimized for efficiency.</p>
       </footer>
     </div>
   );
