@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    requiredRole?: 'admin' | 'driver';
+    requiredRole?: 'admin' | 'driver' | 'manager' | 'dealer';
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -23,6 +23,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         // Redirect to appropriate dashboard
         if (userRole === 'admin') {
             return <Navigate to="/admin" replace />;
+        } else if (userRole === 'manager') {
+            return <Navigate to="/admin" replace />; // Managers go to admin dashboard
+        } else if (userRole === 'dealer') {
+            return <Navigate to="/admin" replace />; // Dealers go to dealer dashboard (embedded in admin/custom UI)
         } else if (userRole === 'driver') {
             return <Navigate to="/driver" replace />;
         }

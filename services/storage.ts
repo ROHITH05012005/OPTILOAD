@@ -2,8 +2,8 @@ import { Item, Truck } from '../types';
 import { DEFAULT_TRUCK, TRUCK_OPTIONS } from '../constants';
 
 const KEYS = {
-  ITEMS: 'cargolens_items',
-  TRUCKS: 'cargolens_trucks',
+  ITEMS: 'logiload_items',
+  TRUCKS: 'logiload_trucks',
 };
 
 export const StorageService = {

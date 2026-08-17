@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, User, Shield, Package, ArrowLeft, MapPin, BarChart3 } from 'lucide-react';
+import { Truck, User, Shield, Package, ArrowLeft, MapPin, BarChart3, Briefcase, Building } from 'lucide-react';
 import { AuthService } from '../services/auth';
 
 export const Login: React.FC = () => {
-  const [userType, setUserType] = useState<'admin' | 'driver' | 'customer' | null>(null);
+  const [userType, setUserType] = useState<'admin' | 'driver' | 'manager' | 'dealer' | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,32 +29,41 @@ export const Login: React.FC = () => {
       if (userType === 'admin') {
         const isAdmin = AuthService.loginAdmin(username, password);
         if (isAdmin) {
-          // Store admin session
           localStorage.setItem('userRole', 'admin');
           localStorage.setItem('isLoggedIn', 'true');
           navigate('/admin');
         } else {
-          setError('Invalid admin credentials');
+          setError('Invalid admin credentials (hint: admin / logiload2024)');
+        }
+      } else if (userType === 'manager') {
+        const isManager = AuthService.loginManager(username, password);
+        if (isManager) {
+          localStorage.setItem('userRole', 'manager');
+          localStorage.setItem('isLoggedIn', 'true');
+          navigate('/admin');
+        } else {
+          setError('Invalid manager credentials (hint: manager / manager2024)');
+        }
+      } else if (userType === 'dealer') {
+        const isDealer = AuthService.loginDealer(username, password);
+        if (isDealer) {
+          localStorage.setItem('userRole', 'dealer');
+          localStorage.setItem('isLoggedIn', 'true');
+          navigate('/admin');
+        } else {
+          setError('Invalid dealer credentials (hint: dealer / dealer2024)');
         }
       } else if (userType === 'driver') {
         const driver = AuthService.loginDriver(username, password);
         if (driver) {
-          // Store driver session
           localStorage.setItem('userRole', 'driver');
           localStorage.setItem('driverId', driver.id);
           localStorage.setItem('driverName', driver.name);
           localStorage.setItem('isLoggedIn', 'true');
           navigate('/driver');
         } else {
-          setError('Invalid driver credentials');
+          setError('Invalid driver credentials (hint: driver1 / driver1)');
         }
-      } else if (userType === 'customer') {
-        // For customer login, we'll redirect to a customer dashboard (placeholder)
-        // In a real app, this would authenticate against a customer database
-        localStorage.setItem('userRole', 'customer');
-        localStorage.setItem('isLoggedIn', 'true');
-        // Since there's no customer dashboard yet, we'll redirect to the main dashboard
-        navigate('/dashboard');
       } else {
         setError('Please select a user type');
       }
@@ -96,19 +105,27 @@ export const Login: React.FC = () => {
                   </button>
 
                   <button
+                    onClick={() => setUserType('manager')}
+                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    <Briefcase className="w-6 h-6" />
+                    Manager Login
+                  </button>
+
+                  <button
+                    onClick={() => setUserType('dealer')}
+                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    <Building className="w-6 h-6" />
+                    Dealer Login
+                  </button>
+
+                  <button
                     onClick={() => setUserType('driver')}
                     className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
                     <User className="w-6 h-6" />
                     Driver Login
-                  </button>
-
-                  <button
-                    onClick={() => setUserType('customer')}
-                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <Package className="w-6 h-6" />
-                    Customer Login
                   </button>
                 </div>
               </div>
@@ -149,8 +166,9 @@ export const Login: React.FC = () => {
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
                       placeholder={
                         userType === 'admin' ? 'admin' :
-                          userType === 'driver' ? 'driver1' :
-                            'customer'
+                        userType === 'manager' ? 'manager' :
+                        userType === 'dealer' ? 'dealer' :
+                        'driver1'
                       }
                       required
                     />
@@ -190,7 +208,7 @@ export const Login: React.FC = () => {
 
             <div className="mt-8 pt-6 border-t border-gray-800 text-center">
               <p className="text-sm text-gray-500">
-                © {new Date().getFullYear()} CargoLens XR. All rights reserved.
+                © {new Date().getFullYear()} LogiLoad India. All rights reserved.
               </p>
             </div>
           </div>
@@ -203,7 +221,7 @@ export const Login: React.FC = () => {
             <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center mb-6 mx-auto">
               <Truck className="w-12 h-12 text-white" />
             </div>
-            <h1 className="text-4xl font-bold mb-4">CargoLens XR</h1>
+            <h1 className="text-4xl font-bold mb-4">LogiLoad India</h1>
             <p className="text-lg text-white/90 mb-12">
               Master your logistics with AI-powered optimization and real-time tracking
             </p>
