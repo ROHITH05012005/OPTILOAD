@@ -17,6 +17,17 @@ import {
 } from 'lucide-react';
 import { AuthService, DeliveryData, MessageData } from '../services/auth';
 import { TRUCK_OPTIONS } from '../constants';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix for default marker icons in Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 export const DriverDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'deliveries' | 'map' | 'messages'>('deliveries');
@@ -164,7 +175,7 @@ export const DriverDashboard: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Truck className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-xl font-bold text-gray-900">Driver Command Center</h1>
+              <h1 className="ml-2 text-xl font-bold text-gray-900">Driver Dashboard</h1>
               <span className="ml-4 text-sm text-gray-600">Welcome, {driverName}</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -192,7 +203,7 @@ export const DriverDashboard: React.FC = () => {
                 }`}
             >
               <Package className="inline-block h-4 w-4 mr-2" />
-              Active Manifest
+              My Deliveries
             </button>
             <button
               onClick={() => setActiveTab('map')}
@@ -202,7 +213,7 @@ export const DriverDashboard: React.FC = () => {
                 }`}
             >
               <MapPin className="inline-block h-4 w-4 mr-2" />
-              Real-time Telemetry
+              Live Tracking
             </button>
             <button
               onClick={() => setActiveTab('messages')}
@@ -212,7 +223,7 @@ export const DriverDashboard: React.FC = () => {
                 }`}
             >
               <MessageSquare className="inline-block h-4 w-4 mr-2" />
-              Dispatch Comms
+              Messages
             </button>
           </nav>
         </div>
@@ -224,7 +235,7 @@ export const DriverDashboard: React.FC = () => {
         {activeTab === 'deliveries' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Active Manifest</h2>
+              <h2 className="text-2xl font-bold text-gray-900">My Deliveries</h2>
               {truck && (
                 <div className="bg-blue-50 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
@@ -392,20 +403,25 @@ export const DriverDashboard: React.FC = () => {
         {/* Live Map Tab */}
         {activeTab === 'map' && (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Real-time Telemetry</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Live Tracking</h2>
 
             <div className="bg-white shadow rounded-lg p-6">
-              <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Navigation className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Live Location Tracking</h3>
-                  <p className="text-gray-500">
-                    Your live location would be shared with the admin and customers.
-                  </p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    Requires browser location permissions.
-                  </p>
-                </div>
+              <div className="h-96 bg-gray-100 rounded-lg overflow-hidden relative z-0">
+                <MapContainer
+                  center={[19.0760, 72.8777]}
+                  zoom={13}
+                  style={{ height: '100%', width: '100%' }}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  <Marker position={[19.0760, 72.8777]}>
+                    <Popup>
+                      Your Current Location
+                    </Popup>
+                  </Marker>
+                </MapContainer>
               </div>
 
               <div className="mt-6">
@@ -436,7 +452,7 @@ export const DriverDashboard: React.FC = () => {
         {/* Messages Tab */}
         {activeTab === 'messages' && (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Dispatch Comms</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Messages</h2>
 
             <div className="bg-white shadow rounded-lg p-6">
               <div className="space-y-4">
@@ -450,7 +466,7 @@ export const DriverDashboard: React.FC = () => {
                       <p className="text-sm text-gray-500">{delivery.pickupLocation} → {delivery.dropLocation}</p>
 
                       <div className="mt-3 space-y-3">
-                        {deliveryMessages.map(message => (
+                        {deliveryMessages.filter(m => !m.content.startsWith('ISSUE REPORTED:')).map(message => (
                           <div
                             key={message.id}
                             className={`p-3 rounded-lg ${message.senderRole === 'driver'
@@ -510,7 +526,7 @@ export const DriverDashboard: React.FC = () => {
               <div className="mb-4 h-64 overflow-y-auto border border-gray-200 rounded-lg p-4">
                 {messages.length > 0 ? (
                   <div className="space-y-3">
-                    {messages.map(message => (
+                    {messages.filter(m => !m.content.startsWith('ISSUE REPORTED:')).map(message => (
                       <div
                         key={message.id}
                         className={`p-3 rounded-lg ${message.senderRole === 'driver'

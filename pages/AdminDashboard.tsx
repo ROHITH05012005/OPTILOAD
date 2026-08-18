@@ -14,12 +14,14 @@ import {
   XCircle,
   Send,
   Clock,
-  Navigation
+  Navigation,
+  FileSpreadsheet,
+  Eye
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { AuthService, DeliveryData, DriverData, MessageData } from '../services/auth';
+import { AuthService, DeliveryData, DriverData, MessageData, BookingRequest } from '../services/auth';
 import { TRUCK_OPTIONS } from '../constants';
 
 // Fix for default marker icons in Leaflet
@@ -30,14 +32,25 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+import { DealerDashboard } from '../components/DealerDashboard';
+
 export const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'deliveries' | 'drivers' | 'map' | 'messages'>('deliveries');
+  const userRole = localStorage.getItem('userRole');
+
+  if (userRole === 'dealer') {
+    return <DealerDashboard />;
+  }
+
+  const [activeTab, setActiveTab] = useState<'deliveries' | 'drivers' | 'map' | 'messages' | 'bookings'>('deliveries');
   const [deliveries, setDeliveries] = useState<DeliveryData[]>([]);
   const [drivers, setDrivers] = useState<DriverData[]>([]);
+  const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryData | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showBookingItemsModal, setShowBookingItemsModal] = useState(false);
   const [selectedDriverIds, setSelectedDriverIds] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -88,6 +101,7 @@ export const AdminDashboard: React.FC = () => {
   const loadData = () => {
     setDeliveries(AuthService.getDeliveries());
     setDrivers(AuthService.getDrivers());
+    setBookings(AuthService.getBookings());
   };
 
   const handleLogout = () => {
@@ -178,6 +192,49 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleApproveBooking = (booking: BookingRequest) => {
+    // Calculate total weight and dimensions from booking items if available
+    const totalWeight = booking.items && booking.items.length > 0
+      ? booking.items.reduce((sum: number, item: any) => sum + (item.weight || 0), 0)
+      : 150; // fallback
+
+    const firstItemDims = booking.items && booking.items.length > 0 && booking.items[0].dimensions
+      ? booking.items[0].dimensions
+      : { length: 60, width: 60, height: 45 }; // fallback
+
+    // Create a new delivery from the booking
+    const newDelivery = AuthService.createDelivery({
+      customerId: `customer-${Date.now()}`,
+      customerName: booking.customerName,
+      customerPhone: booking.customerPhone,
+      pickupLocation: booking.pickupLocation,
+      dropLocation: booking.dropLocation,
+      packageWeight: totalWeight,
+      packageDimensions: firstItemDims,
+      packageNotes: `Dealer order: ${booking.items?.length || 0} items of type ${booking.items?.[0]?.name || 'cargo'}.`,
+      scheduledTime: booking.scheduledTime
+    });
+
+    setDeliveries([...deliveries, newDelivery]);
+
+    // Update booking status
+    const updatedBooking = AuthService.updateBookingStatus(booking.id, 'approved');
+    if (updatedBooking) {
+      setBookings(bookings.map(b => b.id === booking.id ? updatedBooking : b));
+    }
+
+    alert('Booking approved and delivery created!');
+  };
+
+  const handleRejectBooking = (id: string) => {
+    if (window.confirm('Are you sure you want to reject this booking?')) {
+      const updatedBooking = AuthService.updateBookingStatus(id, 'rejected');
+      if (updatedBooking) {
+        setBookings(bookings.map(b => b.id === id ? updatedBooking : b));
+      }
+    }
+  };
+
   const openEditForm = (delivery: DeliveryData) => {
     setSelectedDelivery(delivery);
     setFormData({
@@ -200,6 +257,11 @@ export const AdminDashboard: React.FC = () => {
     setMessages(deliveryMessages);
     setSelectedDelivery(deliveries.find(d => d.id === deliveryId) || null);
     setShowMessageModal(true);
+  };
+
+  const openBookingItemsModal = (booking: BookingRequest) => {
+    setSelectedBooking(booking);
+    setShowBookingItemsModal(true);
   };
 
   const sendMessage = () => {
@@ -323,6 +385,11 @@ export const AdminDashboard: React.FC = () => {
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'on-the-way-to-pickup': return 'bg-blue-100 text-blue-800';
+      case 'reached-pickup': return 'bg-yellow-100 text-yellow-800';
+      case 'picked-up': return 'bg-orange-100 text-orange-800';
+      case 'loaded': return 'bg-purple-100 text-purple-800';
+      case 'on-the-way': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -353,7 +420,14 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Truck className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-xl font-bold text-gray-900">CargoLens XR Admin</h1>
+              <h1 className="ml-2 text-xl font-bold text-gray-900 flex items-center gap-2">
+                LogiLoad {userRole === 'manager' ? 'Manager' : 'Admin'}
+                {userRole === 'manager' && (
+                  <span className="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-md border border-blue-200">
+                    Operations Portal
+                  </span>
+                )}
+              </h1>
             </div>
             <div className="flex items-center space-x-4">
               <button
@@ -375,8 +449,8 @@ export const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('deliveries')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'deliveries'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               <Package className="inline-block h-4 w-4 mr-2" />
@@ -385,18 +459,28 @@ export const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('drivers')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'drivers'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               <User className="inline-block h-4 w-4 mr-2" />
               Drivers
             </button>
             <button
+              onClick={() => setActiveTab('bookings')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'bookings'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              <FileSpreadsheet className="inline-block h-4 w-4 mr-2" />
+              Bookings
+            </button>
+            <button
               onClick={() => setActiveTab('map')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'map'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               <MapPin className="inline-block h-4 w-4 mr-2" />
@@ -405,8 +489,8 @@ export const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('messages')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'messages'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               <MessageSquare className="inline-block h-4 w-4 mr-2" />
@@ -664,29 +748,129 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Bookings Tab */}
+        {activeTab === 'bookings' && (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Booking Requests</h2>
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Route
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Scheduled Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Items
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {bookings.map((booking) => (
+                      <tr key={booking.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{booking.customerName}</div>
+                          <div className="text-sm text-gray-500">{booking.customerPhone}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{booking.pickupLocation}</div>
+                          <div className="text-sm text-gray-500">to {booking.dropLocation}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {new Date(booking.scheduledTime).toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => openBookingItemsModal(booking)}
+                            className="flex items-center text-blue-600 hover:text-blue-900"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View {booking.items.length} Items
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${booking.status === 'approved' ? 'bg-green-100 text-green-800' :
+                            booking.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {booking.status === 'pending' && (
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleApproveBooking(booking)}
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                <CheckCircle className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleRejectBooking(booking.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <XCircle className="h-5 w-5" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Live Map Tab */}
         {activeTab === 'map' && (
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Live Delivery Tracking</h2>
 
             <div className="bg-white shadow rounded-lg p-6">
-              <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Live Map Integration</h3>
-                  <p className="text-gray-500">
-                    Live driver tracking would be implemented here.
-                  </p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    Shows real-time location of assigned deliveries.
-                  </p>
-                </div>
+              <div className="h-96 bg-gray-100 rounded-lg overflow-hidden relative z-0">
+                <MapContainer
+                  center={[19.0760, 72.8777]}
+                  zoom={11}
+                  style={{ height: '100%', width: '100%' }}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  {deliveries.filter(d => ['in-progress', 'on-the-way', 'picked-up'].includes(d.status)).map((delivery, idx) => (
+                    <Marker
+                      key={delivery.id}
+                      position={[19.0760 + (idx * 0.01), 72.8777 + (idx * 0.01)]}
+                    >
+                      <Popup>
+                        <div className="font-medium">{delivery.customerName}</div>
+                        <div className="text-xs">{delivery.status}</div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
               </div>
 
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Active Deliveries</h3>
                 <div className="space-y-4">
-                  {deliveries.filter(d => d.status === 'in-progress' || d.status === 'on-the-way').map(delivery => {
+                  {deliveries.filter(d => ['in-progress', 'on-the-way', 'picked-up'].includes(d.status)).map(delivery => {
                     const driver = drivers.find(d => d.id === delivery.assignedDriverId);
                     return (
                       <div key={delivery.id} className="border border-gray-200 rounded-lg p-4">
@@ -732,8 +916,8 @@ export const AdminDashboard: React.FC = () => {
                           <div
                             key={message.id}
                             className={`p-3 rounded-lg ${message.senderRole === 'admin'
-                                ? 'bg-blue-50 ml-8'
-                                : 'bg-gray-50 mr-8'
+                              ? 'bg-blue-50 ml-8'
+                              : 'bg-gray-50 mr-8'
                               }`}
                           >
                             <div className="flex justify-between text-xs">
@@ -822,7 +1006,7 @@ export const AdminDashboard: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Weight (kg)</label>
                     <input
@@ -834,31 +1018,11 @@ export const AdminDashboard: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Length (cm)</label>
+                    <label className="block text-sm font-medium text-gray-700">Scheduled Time</label>
                     <input
-                      type="number"
-                      value={formData.packageLength}
-                      onChange={(e) => setFormData({ ...formData, packageLength: Number(e.target.value) })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Width (cm)</label>
-                    <input
-                      type="number"
-                      value={formData.packageWidth}
-                      onChange={(e) => setFormData({ ...formData, packageWidth: Number(e.target.value) })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Height (cm)</label>
-                    <input
-                      type="number"
-                      value={formData.packageHeight}
-                      onChange={(e) => setFormData({ ...formData, packageHeight: Number(e.target.value) })}
+                      type="datetime-local"
+                      value={formData.scheduledTime}
+                      onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                       required
                     />
@@ -866,7 +1030,37 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Package Notes</label>
+                  <label className="block text-sm font-medium text-gray-700">Dimensions (cm)</label>
+                  <div className="grid grid-cols-3 gap-2 mt-1">
+                    <input
+                      type="number"
+                      placeholder="L"
+                      value={formData.packageLength}
+                      onChange={(e) => setFormData({ ...formData, packageLength: Number(e.target.value) })}
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="W"
+                      value={formData.packageWidth}
+                      onChange={(e) => setFormData({ ...formData, packageWidth: Number(e.target.value) })}
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="H"
+                      value={formData.packageHeight}
+                      onChange={(e) => setFormData({ ...formData, packageHeight: Number(e.target.value) })}
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Notes</label>
                   <textarea
                     value={formData.packageNotes}
                     onChange={(e) => setFormData({ ...formData, packageNotes: e.target.value })}
@@ -875,28 +1069,17 @@ export const AdminDashboard: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Scheduled Time</label>
-                  <input
-                    type="datetime-local"
-                    value={formData.scheduledTime}
-                    onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                    required
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3">
+                <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowCreateForm(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
                   >
                     Create Delivery
                   </button>
@@ -908,7 +1091,7 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* Edit Delivery Modal */}
-      {showEditForm && (
+      {showEditForm && selectedDelivery && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
             <div className="p-6">
@@ -926,6 +1109,7 @@ export const AdminDashboard: React.FC = () => {
                 e.preventDefault();
                 handleUpdateDelivery();
               }} className="space-y-4">
+                {/* Same form fields as Create Delivery */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Customer Name</label>
@@ -971,7 +1155,7 @@ export const AdminDashboard: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Weight (kg)</label>
                     <input
@@ -983,31 +1167,11 @@ export const AdminDashboard: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Length (cm)</label>
+                    <label className="block text-sm font-medium text-gray-700">Scheduled Time</label>
                     <input
-                      type="number"
-                      value={formData.packageLength}
-                      onChange={(e) => setFormData({ ...formData, packageLength: Number(e.target.value) })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Width (cm)</label>
-                    <input
-                      type="number"
-                      value={formData.packageWidth}
-                      onChange={(e) => setFormData({ ...formData, packageWidth: Number(e.target.value) })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Height (cm)</label>
-                    <input
-                      type="number"
-                      value={formData.packageHeight}
-                      onChange={(e) => setFormData({ ...formData, packageHeight: Number(e.target.value) })}
+                      type="datetime-local"
+                      value={formData.scheduledTime}
+                      onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                       required
                     />
@@ -1015,7 +1179,37 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Package Notes</label>
+                  <label className="block text-sm font-medium text-gray-700">Dimensions (cm)</label>
+                  <div className="grid grid-cols-3 gap-2 mt-1">
+                    <input
+                      type="number"
+                      placeholder="L"
+                      value={formData.packageLength}
+                      onChange={(e) => setFormData({ ...formData, packageLength: Number(e.target.value) })}
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="W"
+                      value={formData.packageWidth}
+                      onChange={(e) => setFormData({ ...formData, packageWidth: Number(e.target.value) })}
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="H"
+                      value={formData.packageHeight}
+                      onChange={(e) => setFormData({ ...formData, packageHeight: Number(e.target.value) })}
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Notes</label>
                   <textarea
                     value={formData.packageNotes}
                     onChange={(e) => setFormData({ ...formData, packageNotes: e.target.value })}
@@ -1024,28 +1218,17 @@ export const AdminDashboard: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Scheduled Time</label>
-                  <input
-                    type="datetime-local"
-                    value={formData.scheduledTime}
-                    onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                    required
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3">
+                <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowEditForm(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
                   >
                     Update Delivery
                   </button>
@@ -1059,85 +1242,78 @@ export const AdminDashboard: React.FC = () => {
       {/* Message Modal */}
       {showMessageModal && selectedDelivery && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Messages - {selectedDelivery.customerName}
-                </h3>
-                <button
-                  onClick={() => setShowMessageModal(false)}
-                  className="text-gray-400 hover:text-gray-500"
+          <div className="bg-white rounded-lg max-w-md w-full h-[600px] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h3 className="font-medium text-gray-900">{selectedDelivery.customerName}</h3>
+                <p className="text-sm text-gray-500">{selectedDelivery.id}</p>
+              </div>
+              <button
+                onClick={() => setShowMessageModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.senderRole === 'admin' ? 'justify-end' : 'justify-start'}`}
                 >
-                  ×
-                </button>
-              </div>
-
-              <div className="mb-4 h-64 overflow-y-auto border border-gray-200 rounded-lg p-4">
-                {messages.length > 0 ? (
-                  <div className="space-y-3">
-                    {messages.map(message => (
-                      <div
-                        key={message.id}
-                        className={`p-3 rounded-lg ${message.senderRole === 'admin'
-                            ? 'bg-blue-50 ml-8'
-                            : 'bg-gray-50 mr-8'
-                          }`}
-                      >
-                        <div className="flex justify-between text-xs">
-                          <span className={`font-medium ${message.senderRole === 'admin' ? 'text-blue-700' : 'text-gray-700'
-                            }`}>
-                            {message.senderRole === 'admin' ? 'Admin' : 'Driver'}
-                          </span>
-                          <span className="text-gray-500">
-                            {new Date(message.timestamp).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-800">{message.content}</p>
-                      </div>
-                    ))}
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 ${message.senderRole === 'admin'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-gray-200 text-gray-900'
+                      }`}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <p className={`text-xs mt-1 ${message.senderRole === 'admin' ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
+                      {new Date(message.timestamp).toLocaleTimeString()}
+                    </p>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    No messages yet
-                  </div>
-                )}
-              </div>
+                </div>
+              ))}
+            </div>
 
+            <div className="p-4 border-t bg-white">
               <div className="flex space-x-2">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && newMessage.trim()) {
-                      sendMessage();
-                    }
-                  }}
+                  placeholder="Type a message..."
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={!newMessage.trim()}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+                  className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-5 w-5" />
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-      {/* Add Driver Modal */}
-      {showAddDriverForm && (
+
+      {/* Add/Edit Driver Modal */}
+      {(showAddDriverForm || showEditDriverForm) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-md w-full">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Add New Driver</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  {showAddDriverForm ? 'Add New Driver' : 'Edit Driver'}
+                </h3>
                 <button
-                  onClick={() => setShowAddDriverForm(false)}
+                  onClick={() => {
+                    setShowAddDriverForm(false);
+                    setShowEditDriverForm(false);
+                  }}
                   className="text-gray-400 hover:text-gray-500"
                 >
                   ×
@@ -1146,93 +1322,90 @@ export const AdminDashboard: React.FC = () => {
 
               <form onSubmit={(e) => {
                 e.preventDefault();
-                handleAddDriver();
+                showAddDriverForm ? handleAddDriver() : handleUpdateDriver();
               }} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input
-                      type="text"
-                      value={driverFormData.name}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, name: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Username</label>
-                    <input
-                      type="text"
-                      value={driverFormData.username}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, username: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <input
+                    type="text"
+                    value={driverFormData.name}
+                    onChange={(e) => setDriverFormData({ ...driverFormData, name: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Username</label>
+                  <input
+                    type="text"
+                    value={driverFormData.username}
+                    onChange={(e) => setDriverFormData({ ...driverFormData, username: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Password</label>
+                  <input
+                    type="password"
+                    value={driverFormData.password}
+                    onChange={(e) => setDriverFormData({ ...driverFormData, password: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone</label>
+                  <input
+                    type="text"
+                    value={driverFormData.phone}
+                    onChange={(e) => setDriverFormData({ ...driverFormData, phone: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">License Number</label>
+                  <input
+                    type="text"
+                    value={driverFormData.licenseNumber}
+                    onChange={(e) => setDriverFormData({ ...driverFormData, licenseNumber: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Truck (Optional)</label>
+                  <select
+                    value={driverFormData.truckId}
+                    onChange={(e) => setDriverFormData({ ...driverFormData, truckId: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  >
+                    <option value="">Select a truck</option>
+                    {TRUCK_OPTIONS.map(truck => (
+                      <option key={truck.id} value={truck.id}>
+                        {truck.name} ({truck.capacity})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Password</label>
-                    <input
-                      type="password"
-                      value={driverFormData.password}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, password: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone</label>
-                    <input
-                      type="text"
-                      value={driverFormData.phone}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, phone: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">License Number</label>
-                    <input
-                      type="text"
-                      value={driverFormData.licenseNumber}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, licenseNumber: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Truck</label>
-                    <select
-                      value={driverFormData.truckId}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, truckId: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                    >
-                      <option value="">Select Truck (Optional)</option>
-                      {TRUCK_OPTIONS.map(truck => (
-                        <option key={truck.id} value={truck.id}>{truck.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3">
+                <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowAddDriverForm(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    onClick={() => {
+                      setShowAddDriverForm(false);
+                      setShowEditDriverForm(false);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
                   >
-                    Add Driver
+                    {showAddDriverForm ? 'Add Driver' : 'Update Driver'}
                   </button>
                 </div>
               </form>
@@ -1241,113 +1414,70 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Driver Modal */}
-      {showEditDriverForm && selectedDriver && (
+      {/* Booking Items Modal */}
+      {showBookingItemsModal && selectedBooking && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Edit Driver</h3>
-                <button
-                  onClick={() => setShowEditDriverForm(false)}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  ×
-                </button>
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Items List</h3>
+                <p className="text-sm text-gray-500">
+                  Booking from {selectedBooking.customerName} ({selectedBooking.items.length} items)
+                </p>
               </div>
+              <button
+                onClick={() => setShowBookingItemsModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                ×
+              </button>
+            </div>
 
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                handleUpdateDriver();
-              }} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input
-                      type="text"
-                      value={driverFormData.name}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, name: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Username</label>
-                    <input
-                      type="text"
-                      value={driverFormData.username}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, username: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Password</label>
-                    <input
-                      type="password"
-                      value={driverFormData.password}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, password: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone</label>
-                    <input
-                      type="text"
-                      value={driverFormData.phone}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, phone: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">License Number</label>
-                    <input
-                      type="text"
-                      value={driverFormData.licenseNumber}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, licenseNumber: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Truck</label>
-                    <select
-                      value={driverFormData.truckId}
-                      onChange={(e) => setDriverFormData({ ...driverFormData, truckId: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                    >
-                      <option value="">Select Truck (Optional)</option>
-                      {TRUCK_OPTIONS.map(truck => (
-                        <option key={truck.id} value={truck.id}>{truck.name}</option>
+            <div className="flex-1 overflow-auto p-6">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {selectedBooking.items.length > 0 && Object.keys(selectedBooking.items[0]).map((key) => (
+                        <th key={key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {key}
+                        </th>
                       ))}
-                    </select>
-                  </div>
-                </div>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedBooking.items.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        {Object.values(item).map((value: any, i) => (
+                          <td key={i} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {String(value)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowEditDriverForm(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-                  >
-                    Update Driver
-                  </button>
-                </div>
-              </form>
+            <div className="p-6 border-t bg-gray-50 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowBookingItemsModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-white"
+              >
+                Close
+              </button>
+              {selectedBooking.status === 'pending' && (
+                <button
+                  onClick={() => {
+                    handleApproveBooking(selectedBooking);
+                    setShowBookingItemsModal(false);
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
+                >
+                  Approve Booking
+                </button>
+              )}
             </div>
           </div>
         </div>
