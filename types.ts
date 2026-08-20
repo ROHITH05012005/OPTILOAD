@@ -13,6 +13,8 @@ export interface Item {
   weight?: number;
   isFragile: boolean;
   isStackable: boolean;
+  city?: string;
+  stopId?: string;
 }
 
 export interface Truck {
@@ -33,6 +35,9 @@ export interface LoadResult {
   placedItems: PlacedItem[];
   unplacedItems: Item[];
   volumeUtilization: number; // 0 to 100
+  weightUtilization?: number; // 0 to 100
+  centerOfGravity?: { x: number; y: number; z: number }; // Relative to truck origin
+  totalWeight?: number;
 }
 
 export interface RouteStop {
@@ -48,6 +53,7 @@ export interface RouteResult {
   totalDistanceKm: number;
   totalDurationMins: number;
   overviewPolyline: string;
+  intermodalPolyline?: string;
 }
 
 // Driver interface

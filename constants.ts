@@ -140,3 +140,89 @@ export const ITEM_COLORS = [
   "#8b5cf6", // violet
   "#d946ef", // fuchsia
 ];
+
+export const AIRCRAFT_OPTIONS = [
+  {
+    id: 'boeing-777f',
+    name: 'Boeing 777F Freighter',
+    dimensions: {
+      length: 4800, // cm
+      width: 550,   // cm
+      height: 300   // cm
+    },
+    maxWeight: 102000 // kg
+  },
+  {
+    id: 'airbus-a350f',
+    name: 'Airbus A350F (NextGen)',
+    dimensions: {
+      length: 5000, // cm
+      width: 560,   // cm
+      height: 310   // cm
+    },
+    maxWeight: 109000 // kg
+  },
+  {
+    id: 'md-11f',
+    name: 'MD-11F Tri-Jet',
+    dimensions: {
+      length: 4200, // cm
+      width: 520,   // cm
+      height: 280   // cm
+    },
+    maxWeight: 91000 // kg
+  },
+  {
+    id: 'boeing-767-300f',
+    name: 'Boeing 767-300F',
+    dimensions: {
+      length: 3800, // cm
+      width: 470,   // cm
+      height: 260   // cm
+    },
+    maxWeight: 52000 // kg
+  },
+  {
+    id: 'atr-72-600f',
+    name: 'ATR 72-600F (Regional)',
+    dimensions: {
+      length: 1500, // cm
+      width: 250,   // cm
+      height: 180   // cm
+    },
+    maxWeight: 8900 // kg
+  }
+];
+
+export const VESSEL_OPTIONS = [
+  {
+    id: 'coastal-feeder',
+    name: 'Coastal Feeder Class',
+    dimensions: {
+      length: 1200, // cm
+      width: 400,   // cm
+      height: 350   // cm
+    },
+    maxWeight: 80000 // kg (80 MT)
+  },
+  {
+    id: 'panamax-carrier',
+    name: 'Panamax Carrier Class',
+    dimensions: {
+      length: 2400, // cm
+      width: 600,   // cm
+      height: 500   // cm
+    },
+    maxWeight: 250000 // kg (250 MT)
+  },
+  {
+    id: 'capesize-freighter',
+    name: 'Capesize Heavy Freighter',
+    dimensions: {
+      length: 4800, // cm
+      width: 1000,  // cm
+      height: 800   // cm
+    },
+    maxWeight: 1000000 // kg (1000 MT)
+  }
+];
