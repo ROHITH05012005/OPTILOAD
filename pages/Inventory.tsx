@@ -11,7 +11,7 @@ export const Inventory: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   // New Item State
   const [newItem, setNewItem] = useState<Partial<Item>>({
     name: '',
@@ -39,7 +39,7 @@ export const Inventory: React.FC = () => {
   const handleAddItem = () => {
     if (!newItem.name || !tempDims.length) return alert("Name and dimensions required");
     if (!newItem.weight || newItem.weight <= 0) return alert("Weight is required and must be greater than 0");
-
+    
     const itemToAdd: Item = {
       id: Date.now().toString(),
       name: newItem.name!,
@@ -48,7 +48,8 @@ export const Inventory: React.FC = () => {
       color: getItemColor(newItem.weight, newItem.isFragile || false),
       isFragile: newItem.isFragile || false,
       isStackable: newItem.isStackable ?? true,
-      weight: newItem.weight
+      weight: newItem.weight,
+      city: newItem.city || undefined
     };
 
     const updated = [...items, itemToAdd];
@@ -56,7 +57,7 @@ export const Inventory: React.FC = () => {
     StorageService.saveItems(updated);
     setShowForm(false);
     setEditingItem(null);
-    setNewItem({ name: '', quantity: 1, isFragile: false, isStackable: true, weight: 0 });
+    setNewItem({ name: '', quantity: 1, isFragile: false, isStackable: true, weight: 0, city: '' });
     setTempDims({ length: 0, width: 0, height: 0 });
   };
 
@@ -67,7 +68,8 @@ export const Inventory: React.FC = () => {
       quantity: item.quantity,
       isFragile: item.isFragile,
       isStackable: item.isStackable,
-      weight: item.weight
+      weight: item.weight,
+      city: item.city || ''
     });
     setTempDims(item.dimensions);
     setShowForm(true);
@@ -77,7 +79,7 @@ export const Inventory: React.FC = () => {
     if (!editingItem) return;
     if (!newItem.name || !tempDims.length) return alert("Name and dimensions required");
     if (!newItem.weight || newItem.weight <= 0) return alert("Weight is required and must be greater than 0");
-
+    
     const updatedItem: Item = {
       ...editingItem,
       name: newItem.name!,
@@ -86,7 +88,8 @@ export const Inventory: React.FC = () => {
       color: getItemColor(newItem.weight, newItem.isFragile || false),
       isFragile: newItem.isFragile || false,
       isStackable: newItem.isStackable ?? true,
-      weight: newItem.weight
+      weight: newItem.weight,
+      city: newItem.city || undefined
     };
 
     const updated = items.map(i => i.id === editingItem.id ? updatedItem : i);
@@ -94,7 +97,7 @@ export const Inventory: React.FC = () => {
     StorageService.saveItems(updated);
     setShowForm(false);
     setEditingItem(null);
-    setNewItem({ name: '', quantity: 1, isFragile: false, isStackable: true, weight: 0 });
+    setNewItem({ name: '', quantity: 1, isFragile: false, isStackable: true, weight: 0, city: '' });
     setTempDims({ length: 0, width: 0, height: 0 });
   };
 
@@ -102,6 +105,15 @@ export const Inventory: React.FC = () => {
     const updated = items.filter(i => i.id !== id);
     setItems(updated);
     StorageService.saveItems(updated);
+  };
+
+  const handleDeleteAll = () => {
+    if (items.length === 0) return;
+    
+    if (confirm(`Are you sure you want to delete all ${items.length} items? This action cannot be undone.`)) {
+      setItems([]);
+      StorageService.saveItems([]);
+    }
   };
 
   const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +139,7 @@ export const Inventory: React.FC = () => {
         const firstRow: any = jsonData[0];
         const requiredColumns = ['name', 'quantity', 'length', 'width', 'height', 'weight'];
         const missingColumns = requiredColumns.filter(col => !(col in firstRow));
-
+        
         if (missingColumns.length > 0) {
           alert(`❌ Missing required columns: ${missingColumns.join(', ')}\n\nYour columns: ${Object.keys(firstRow).join(', ')}\n\nRequired columns: name, quantity, length, width, height, weight`);
           return;
@@ -136,17 +148,17 @@ export const Inventory: React.FC = () => {
         // Process the Excel data and convert to items
         const processedItems: { item: Item | null, error: string | null, rowNum: number }[] = jsonData.map((row: any, index: number) => {
           const rowNum = index + 2; // +2 because Excel is 1-indexed and has header row
-
+          
           // Validate required fields
           if (!row.name || row.name.toString().trim() === '') {
             return { item: null, error: `Row ${rowNum}: Missing name`, rowNum };
           }
-
+          
           const length = parseFloat(row.length);
           const width = parseFloat(row.width);
           const height = parseFloat(row.height);
           const weight = parseFloat(row.weight);
-
+          
           if (isNaN(length) || length <= 0) {
             return { item: null, error: `Row ${rowNum}: Invalid length (${row.length})`, rowNum };
           }
@@ -159,9 +171,9 @@ export const Inventory: React.FC = () => {
           if (isNaN(weight) || weight <= 0) {
             return { item: null, error: `Row ${rowNum}: Invalid weight (${row.weight})`, rowNum };
           }
-
+          
           const isFragile = row.isFragile === true || row.isFragile === 'true' || row.isFragile === 1 || row.isFragile === 'TRUE';
-
+          
           const item: Item = {
             id: `excel-${Date.now()}-${index}`,
             name: row.name.toString().trim(),
@@ -170,9 +182,10 @@ export const Inventory: React.FC = () => {
             color: getItemColor(weight, isFragile),
             isFragile: isFragile,
             isStackable: row.isStackable !== false && row.isStackable !== 'false' && row.isStackable !== 0 && row.isStackable !== 'FALSE',
-            weight: weight
+            weight: weight,
+            city: row.city ? row.city.toString().trim() : undefined
           };
-
+          
           return { item, error: null, rowNum };
         });
 
@@ -196,9 +209,9 @@ export const Inventory: React.FC = () => {
         const updated = [...items, ...validItems];
         setItems(updated);
         StorageService.saveItems(updated);
-
+        
         alert(`✅ Successfully imported ${validItems.length} items from Excel!${errors.length > 0 ? `\n\n⚠️ Skipped ${errors.length} invalid rows.` : ''}`);
-
+        
         // Reset file input
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -214,15 +227,23 @@ export const Inventory: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Cargo Inventory</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Inventory (Goods)</h1>
         <div className="flex flex-wrap gap-3">
-          <button
+          <button 
             onClick={() => fileInputRef.current?.click()}
             className="bg-green-600 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-green-700 transition-colors shadow-sm font-medium"
           >
-            <Upload className="w-4 h-4" /> Import Manifest (Excel)
+            <Upload className="w-4 h-4" /> Import Excel
           </button>
-          <button
+          {items.length > 0 && (
+            <button 
+              onClick={handleDeleteAll}
+              className="bg-red-600 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-red-700 transition-colors shadow-sm font-medium"
+            >
+              <Trash2 className="w-4 h-4" /> Delete All
+            </button>
+          )}
+          <button 
             onClick={() => {
               setEditingItem(null);
               setNewItem({ name: '', quantity: 1, isFragile: false, isStackable: true, weight: 0 });
@@ -231,7 +252,7 @@ export const Inventory: React.FC = () => {
             }}
             className="bg-brand-600 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-sm font-medium"
           >
-            <Plus className="w-4 h-4" /> Add Cargo Item
+            <Plus className="w-4 h-4" /> Add New Item
           </button>
         </div>
       </div>
@@ -269,7 +290,7 @@ export const Inventory: React.FC = () => {
           </div>
         </div>
       </div>
-
+      
       <input
         type="file"
         ref={fileInputRef}
@@ -277,7 +298,7 @@ export const Inventory: React.FC = () => {
         accept=".xlsx,.xls"
         className="hidden"
       />
-
+      
       {showForm && (
         <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-6 animate-in fade-in slide-in-from-top-4">
           <h2 className="text-xl font-semibold mb-6 text-slate-900 dark:text-white">{editingItem ? 'Edit Item' : 'New Item Details'}</h2>
@@ -285,70 +306,80 @@ export const Inventory: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Name</label>
-                <input
-                  type="text"
+                <input 
+                  type="text" 
                   className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 shadow-sm focus:ring-brand-500 focus:border-brand-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   value={newItem.name}
-                  onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                  onChange={e => setNewItem({...newItem, name: e.target.value})}
                   placeholder="e.g., 55 inch TV Box"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity</label>
-                  <input
-                    type="number"
+                  <input 
+                    type="number" 
                     className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     value={newItem.quantity}
-                    onChange={e => setNewItem({ ...newItem, quantity: parseInt(e.target.value) })}
+                    onChange={e => setNewItem({...newItem, quantity: parseInt(e.target.value)})}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Weight (kg)</label>
-                  <input
-                    type="number"
+                  <input 
+                    type="number" 
                     step="0.1"
                     className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     value={newItem.weight || ''}
-                    onChange={e => setNewItem({ ...newItem, weight: parseFloat(e.target.value) })}
+                    onChange={e => setNewItem({...newItem, weight: parseFloat(e.target.value)})}
                     placeholder="e.g., 25.5"
                   />
                 </div>
               </div>
               <div className="flex items-center gap-4 pt-2">
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={newItem.isFragile} onChange={e => setNewItem({ ...newItem, isFragile: e.target.checked })} />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Fragile</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={newItem.isStackable} onChange={e => setNewItem({ ...newItem, isStackable: e.target.checked })} />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Stackable</span>
-                </label>
+                 <label className="flex items-center gap-2">
+                   <input type="checkbox" checked={newItem.isFragile} onChange={e => setNewItem({...newItem, isFragile: e.target.checked})} />
+                   <span className="text-sm text-gray-700 dark:text-gray-300">Fragile</span>
+                 </label>
+                 <label className="flex items-center gap-2">
+                   <input type="checkbox" checked={newItem.isStackable} onChange={e => setNewItem({...newItem, isStackable: e.target.checked})} />
+                   <span className="text-sm text-gray-700 dark:text-gray-300">Stackable</span>
+                 </label>
+              </div>
+              <div className="pt-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Destination City (restricted to Indian hubs)</label>
+                <input 
+                  type="text" 
+                  className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  value={newItem.city || ''}
+                  onChange={e => setNewItem({...newItem, city: e.target.value})}
+                  placeholder="e.g., Pune, Mumbai, Bangalore"
+                />
               </div>
             </div>
-
+            
             <div>
-              <ScannerInput
-                label="Dimensions (L x W x H)"
+              <ScannerInput 
+                label="Dimensions (L x W x H)" 
                 onSave={setTempDims}
                 initialDims={tempDims}
               />
             </div>
           </div>
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-            <button
+            <button 
               onClick={() => {
                 setShowForm(false);
                 setEditingItem(null);
                 setNewItem({ name: '', quantity: 1, isFragile: false, isStackable: true, weight: 0 });
                 setTempDims({ length: 0, width: 0, height: 0 });
-              }}
+              }} 
               className="px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors font-medium"
             >
               Cancel
             </button>
-            <button
-              onClick={editingItem ? handleUpdateItem : handleAddItem}
+            <button 
+              onClick={editingItem ? handleUpdateItem : handleAddItem} 
               className="px-6 py-3 bg-slate-900 dark:bg-blue-600 text-white rounded-lg hover:bg-slate-800 dark:hover:bg-blue-700 transition-colors shadow-sm font-medium"
             >
               {editingItem ? 'Update Item' : 'Save Item'}
@@ -356,19 +387,19 @@ export const Inventory: React.FC = () => {
           </div>
         </div>
       )}
-
+      
       <div className="grid gap-4">
         {items.length === 0 ? (
           <div className="text-center py-16 px-6 text-gray-400 dark:text-gray-500 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
             <Box className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">Inventory Empty</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Initialize your cargo manifest manually or import via Excel.</p>
+            <p className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">No items in inventory</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Add items manually or import from Excel to get started</p>
           </div>
         ) : (
           items.map(item => (
             <div key={item.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow flex justify-between items-center">
               <div className="flex items-center gap-5">
-                <div
+                <div 
                   className="w-10 h-10 rounded flex items-center justify-center font-bold text-white"
                   style={{ backgroundColor: item.color }}
                 >
@@ -385,14 +416,14 @@ export const Inventory: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleEditItem(item)}
+                <button 
+                  onClick={() => handleEditItem(item)} 
                   className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2.5 rounded-lg transition-colors"
                 >
                   <Edit className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={() => handleDelete(item.id)}
+                <button 
+                  onClick={() => handleDelete(item.id)} 
                   className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 p-2.5 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-5 h-5" />

@@ -8,7 +8,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const userRole = localStorage.getItem('userRole');
-
+    
     if (isLoggedIn) {
       if (userRole === 'admin') {
         navigate('/admin');
@@ -21,8 +21,8 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome to CargoLens XR</h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">Optimize your logistics, maximize truck space, and plan efficient routes.</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome to LogiLoadIN</h1>
+        <p className="text-gray-600 dark:text-gray-300 mt-2">Manage your logistics, maximize truck space, and plan efficient routes.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -32,7 +32,7 @@ export const Dashboard: React.FC = () => {
             <Truck className="w-6 h-6" />
           </div>
           <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Truck Configuration</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Set up your fleet dimensions. Scan truck interiors using your camera.</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">Set up your fleet dimensions for optimal volumetric planning.</p>
           <Link to="/trucks" className="text-brand-600 dark:text-brand-400 font-semibold flex items-center gap-1 hover:underline">
             Manage Trucks <ArrowRight className="w-4 h-4" />
           </Link>
@@ -44,7 +44,7 @@ export const Dashboard: React.FC = () => {
             <Package className="w-6 h-6" />
           </div>
           <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">3D Load Optimizer</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Add goods, scan dimensions, and visualize the perfect packing plan.</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">Add cargo items and visualize the most efficient 3D packing plan.</p>
           <div className="flex gap-4">
             <Link to="/inventory" className="text-brand-600 dark:text-brand-400 font-semibold hover:underline">Add Items</Link>
             <span className="text-gray-300 dark:text-gray-600">|</span>
@@ -69,11 +69,11 @@ export const Dashboard: React.FC = () => {
 
       <div className="mt-12 bg-gradient-to-r from-slate-900 to-slate-800 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-8 text-white flex flex-col md:flex-row items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold mb-2">Ready to load?</h2>
-          <p className="text-slate-300 dark:text-gray-400">Start by adding items to your inventory.</p>
+            <h2 className="text-2xl font-bold mb-2">Ready to load?</h2>
+            <p className="text-slate-300 dark:text-gray-400">Start by adding items to your inventory.</p>
         </div>
         <Link to="/inventory" className="mt-4 md:mt-0 bg-brand-500 dark:bg-brand-600 hover:bg-brand-400 dark:hover:bg-brand-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition">
-          Go to Inventory
+            Go to Inventory
         </Link>
       </div>
     </div>
