@@ -1,0 +1,11 @@
+name,quantity,length,width,height,weight,isFragile,isStackable
+TV Box 55",2,120,80,60,25,true,false
+Laptop Box,5,50,40,10,3.5,true,true
+Furniture Package,1,200,100,80,150,false,false
+Books Carton,10,40,30,30,15,false,true
+Glass Items,3,60,40,40,8,true,false
+Small Parcel,20,30,20,15,2,false,true
+Medium Parcel,15,50,40,30,8,false,true
+Large Parcel,8,80,60,50,25,false,true
+Electronics Box,4,70,50,40,18,true,false
+Clothing Box,12,60,40,35,12,false,true

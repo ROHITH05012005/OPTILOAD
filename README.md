@@ -1,64 +1,51 @@
-# CargoLens XR 🚚
+# LogiLoad 3D — Multi-Modal Cargo Loading & Route Optimizer
 
-**CargoLens XR** is a next-generation logistics platform designed to revolutionize supply chain management through immersive 3D visualization and AI-driven optimization.
+LogiLoad 3D is a premium, interactive WebGL-based cargo loading and routing optimizer designed for modern logistics operations across land, sea, and air. Built with React, Three.js, and React Three Fiber, it provides real-time 3D visualizations of cargo loading layouts, physical constraints, and flight balance physics.
 
 ## 🚀 Key Features
 
--   **3D Load Optimization**: Visualize and optimize cargo placement using advanced bin-packing algorithms to maximize truck space utilization.
--   **Intelligent Route Planning**: AI-powered routing that considers traffic, distance, and vehicle constraints for efficient delivery management.
--   **Fleet Management**: Comprehensive tools for tracking and managing your fleet, drivers, and maintenance schedules.
--   **Real-time Analytics**: Deep insights into operational efficiency, costs, and performance metrics.
--   **Driver Portal**: Dedicated interface for drivers to manage deliveries and routes.
+### 1. ✈️ 3D Air Cargo Loading & Weight & Balance HUD
+- **Transmissive pointed-nose fuselage model** with aerodynamic airfoil wings, vertical/horizontal stabilizers, rear engines, and cabin lights.
+- **Center of Gravity (CoG) Packing Algorithm**: Automatically packs items from the center of the cabin outward (directly above the wing lift zone) to maintain flight stability.
+- **Interactive W&B Trim HUD**: Real-time slider metrics showing center of gravity drift against forward and aft safe operating limits.
+- **Aviation-Specific Cargo Models**: Custom rendering of AMJ cargo containers, netted wooden cargo pallets, vehicle chassis, and avionics racks.
 
-## 🛠️ Tech Stack
+### 2. 🚢 3D Sea Cargo Hold Optimizer
+- **Semi-transparent vessel cargo holds** displaying loaded containers.
+- **Support-Area Solver**: Enforces a minimum 70% floor/under-support contact area to prevent floating boxes.
+- **Custom Cargo Visualizers**: Custom cylinders, steel coils, turbines, and machinery structures.
 
--   **Frontend**: React 18, TypeScript, Tailwind CSS
--   **3D Engine**: Three.js, @react-three/fiber
--   **State Management**: React Context / Local Storage (MVP)
--   **Build Tool**: Vite
--   **Icons**: Lucide React
+### 3. 🗺️ Multi-Modal Route Planner
+- Interactive Leaflet-based map routers for flight paths and sea lanes.
+- Estimated Time of Arrival (ETA), fuel consumption indicators, and route point configuration.
 
-## 🏁 Getting Started
-
-### Prerequisites
-
--   Node.js (v18 or higher)
--   npm or yarn
-
-### Installation
-
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/yourusername/cargolens-xr.git
-    cd cargolens-xr
-    ```
-
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-
-3.  Start the development server:
-    ```bash
-    npm run dev
-    ```
-
-4.  Open your browser and navigate to `http://localhost:3000`.
-
-## 📦 Building for Production
-
-To create a production build:
-
-```bash
-npm run build
-```
-
-The output will be in the `dist` directory.
-
-## 📄 License
-
-This project is licensed under the MIT License.
+### 4. 📸 Camera Dimensions Scanner
+- Live camera integration with computer vision mocking to detect crate dimensions dynamically from video feeds.
 
 ---
 
-© 2024 CargoLens XR. All rights reserved.
+## 🛠️ Technology Stack
+- **Framework**: React 19 + TypeScript + Vite
+- **3D Graphics**: Three.js, React Three Fiber (`@react-three/fiber`), `@react-three/drei`
+- **Routing Maps**: Leaflet, `react-leaflet`
+- **UI Components**: Lucide React Icons, Vanilla CSS utilities with glassmorphism effects.
+
+---
+
+## ⚡ Quick Start
+
+### Installation
+Clone the repository and install dependencies:
+```bash
+npm install
+```
+
+### Run Local Development Server
+```bash
+npm run dev
+```
+
+### Build Production Bundle
+```bash
+npm run build
+```
