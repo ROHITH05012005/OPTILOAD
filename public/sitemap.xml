@@ -1,45 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemap.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemap.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemap.org/schemas/sitemap/0.9 http://www.sitemap.org/schemas/sitemap/0.9/sitemap.xsd">
+  <!-- Primary Landing Page -->
   <url>
-    <loc>https://optiload-3d.web.app/</loc>
+    <loc>https://www.optiload.in.net/</loc>
     <lastmod>2026-08-25</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
+  <!-- 3D Road Cargo Bin Packing Optimizer -->
   <url>
-    <loc>https://optiload-3d.web.app/#/optimizer</loc>
+    <loc>https://www.optiload.in.net/#/optimizer</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
   </url>
+  <!-- Multi-Stop Smart Route Planner -->
   <url>
-    <loc>https://optiload-3d.web.app/#/air-optimizer</loc>
+    <loc>https://www.optiload.in.net/#/route</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.90</priority>
   </url>
+  <!-- Air Cargo & Aircraft Weight & Balance HUD -->
   <url>
-    <loc>https://optiload-3d.web.app/#/sea-optimizer</loc>
+    <loc>https://www.optiload.in.net/#/air-optimizer</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
   </url>
+  <!-- Maritime & Vessel Hold Cargo Distribution -->
   <url>
-    <loc>https://optiload-3d.web.app/#/route</loc>
+    <loc>https://www.optiload.in.net/#/sea-optimizer</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.85</priority>
   </url>
+  <!-- Freight Booking & Logistics Dispatch -->
   <url>
-    <loc>https://optiload-3d.web.app/#/book</loc>
+    <loc>https://www.optiload.in.net/#/book</loc>
+    <lastmod>2026-08-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <!-- Customer & Driver Portal Login -->
+  <url>
+    <loc>https://www.optiload.in.net/#/login</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://optiload-3d.web.app/#/login</loc>
-    <lastmod>2026-08-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.60</priority>
   </url>
 </urlset>
