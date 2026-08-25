@@ -36,7 +36,15 @@ export const Login: React.FC = () => {
         setError('Firebase Auth is not yet configured.');
       }
     } catch (err: any) {
-      setError(err?.message || 'Google Sign-In failed');
+      if (err?.code === 'auth/popup-closed-by-user') {
+        // User just closed popup, no need to show scary error
+        setError('Sign-in cancelled. Please select your Google account in the popup.');
+      } else if (err?.code === 'auth/cancelled-popup-request') {
+        // Popup was triggered multiple times
+        setError('Sign-in in progress. Please check your popup windows.');
+      } else {
+        setError(err?.message || 'Google Sign-In failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -62,8 +70,8 @@ export const Login: React.FC = () => {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 mb-6">
-                <p className="text-red-400 text-sm">{error}</p>
+              <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-3 mb-6">
+                <p className="text-amber-400 text-sm">{error}</p>
               </div>
             )}
 
@@ -82,7 +90,7 @@ export const Login: React.FC = () => {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
                   </svg>
-                  {loading ? 'Signing in with Google...' : 'Quick Sign-In with Google'}
+                  {loading ? 'Signing in...' : 'Quick Sign-In with Google'}
                 </button>
 
                 <div className="flex items-center my-4">
