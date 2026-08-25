@@ -11,13 +11,19 @@ import {
 import { getFirestore } from 'firebase/firestore';
 
 // Read Firebase config from environment variables
+const isBrowser = typeof window !== 'undefined';
+const currentHost = isBrowser ? window.location.hostname : '';
+
+// If running on custom domain, use custom domain or default firebaseapp.com
+const authDomain = (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || "optiload-3d.firebaseapp.com";
+
 const firebaseConfig = {
   apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || "",
-  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || "",
-  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || "",
-  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || ""
+  authDomain: authDomain,
+  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || "optiload-3d",
+  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || "optiload-3d.firebasestorage.app",
+  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "1058072216922",
+  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || "1:1058072216922:web:e7e29c25b50145ba39df63"
 };
 
 // Check if valid Firebase configuration exists
@@ -34,6 +40,11 @@ const app = isFirebaseConfigured()
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
 export const googleProvider = new GoogleAuthProvider();
+
+// Add custom parameters to force account selection and avoid cached domain mismatch
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
 
 // Firebase Auth Helper Functions
 export const signInWithGoogle = async (): Promise<User | null> => {
