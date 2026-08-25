@@ -10,7 +10,7 @@ interface ChatMessage {
 export const LandingChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { sender: 'bot', text: 'Namaste! Welcome to LogiLoad India. I am your AI Logistics Assistant. How can I help you optimize your shipping, routes, or load today?' }
+    { sender: 'bot', text: 'Namaste! Welcome to OptiLoad 3D. I am your AI Logistics Assistant. How can I help you optimize your shipping, routes, or load today?' }
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);

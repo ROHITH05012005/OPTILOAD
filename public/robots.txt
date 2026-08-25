@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://optiload-3d.web.app/sitemap.xml

@@ -51,7 +51,7 @@ export const Navbar: React.FC = () => {
               <Truck className="w-6 h-6 text-white" strokeWidth={3} />
             </div>
             <span className="font-black text-xl tracking-tight text-white ml-2">
-              Logi<span className="text-brand-500">LoadIN</span>
+              Opti<span className="text-brand-500">Load 3D</span>
             </span>
           </Link>
 
