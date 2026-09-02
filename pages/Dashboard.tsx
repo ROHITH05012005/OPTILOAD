@@ -1,22 +1,8 @@
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Truck, Package, Map, ArrowRight } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const userRole = localStorage.getItem('userRole');
-    
-    if (isLoggedIn) {
-      if (userRole === 'admin') {
-        navigate('/admin');
-      } else if (userRole === 'driver') {
-        navigate('/driver');
-      }
-    }
-  }, [navigate]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

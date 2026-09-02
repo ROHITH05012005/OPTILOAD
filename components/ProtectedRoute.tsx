@@ -1,36 +1,38 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    requiredRole?: 'admin' | 'driver' | 'manager' | 'dealer';
+    requiredRole?: 'admin' | 'driver' | 'manager' | 'dealer' | string;
+    allowedRoles?: ('admin' | 'driver' | 'manager' | 'dealer' | string)[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     children,
-    requiredRole
+    requiredRole,
+    allowedRoles
 }) => {
+    const location = useLocation();
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const userRole = localStorage.getItem('userRole');
 
-    // If not logged in, redirect to login page
-    if (!isLoggedIn) {
-        return <Navigate to="/login" replace />;
+    // If not logged in, strictly redirect to the login portal
+    if (!isLoggedIn || !userRole) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // If a specific role is required and doesn't match, redirect to login
-    if (requiredRole && userRole !== requiredRole) {
-        // Redirect to appropriate dashboard
-        if (userRole === 'admin') {
-            return <Navigate to="/admin" replace />;
-        } else if (userRole === 'manager') {
-            return <Navigate to="/admin" replace />; // Managers go to admin dashboard
-        } else if (userRole === 'dealer') {
-            return <Navigate to="/admin" replace />; // Dealers go to dealer dashboard (embedded in admin/custom UI)
-        } else if (userRole === 'driver') {
+    // Determine allowed roles
+    const permittedRoles = allowedRoles || (requiredRole ? [requiredRole] : null);
+
+    // If specific roles are required and user's role is not permitted
+    if (permittedRoles && !permittedRoles.includes(userRole)) {
+        if (userRole === 'driver') {
             return <Navigate to="/driver" replace />;
+        } else if (userRole === 'dealer') {
+            return <Navigate to="/admin" replace />;
+        } else {
+            return <Navigate to="/dashboard" replace />;
         }
-        return <Navigate to="/login" replace />;
     }
 
     return <>{children}</>;

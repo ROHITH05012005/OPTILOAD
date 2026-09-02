@@ -63,25 +63,25 @@ const App: React.FC = () => {
       <DarkModeProvider>
         <HashRouter>
           <Routes>
-            {/* Public routes - no layout */}
+            {/* Public routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/book" element={<BookService />} />
 
-            {/* Protected routes with layout */}
+            {/* Strictly Protected application routes with layout */}
             <Route element={<ProtectedRoute><Layout><Outlet /></Layout></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/driver" element={<ProtectedRoute requiredRole="driver"><DriverDashboard /></ProtectedRoute>} />
               <Route path="/inventory" element={<Inventory />} />
-              <Route path="/trucks" element={<Trucks />} />
-              <Route path="/optimizer" element={<ProtectedRoute><Optimizer /></ProtectedRoute>} />
-              <Route path="/air-optimizer" element={<ProtectedRoute><AirOptimizer /></ProtectedRoute>} />
-              <Route path="/sea-optimizer" element={<ProtectedRoute><SeaOptimizer /></ProtectedRoute>} />
-              <Route path="/route" element={<ProtectedRoute><RoutePlanner /></ProtectedRoute>} />
-              <Route path="/air-route" element={<ProtectedRoute><AirRoutePlanner /></ProtectedRoute>} />
-              <Route path="/sea-route" element={<ProtectedRoute><SeaRoutePlanner /></ProtectedRoute>} />
-              <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
+              <Route path="/trucks" element={<ProtectedRoute allowedRoles={['admin']}><Trucks /></ProtectedRoute>} />
+              <Route path="/optimizer" element={<Optimizer />} />
+              <Route path="/air-optimizer" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AirOptimizer /></ProtectedRoute>} />
+              <Route path="/sea-optimizer" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><SeaOptimizer /></ProtectedRoute>} />
+              <Route path="/route" element={<RoutePlanner />} />
+              <Route path="/air-route" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AirRoutePlanner /></ProtectedRoute>} />
+              <Route path="/sea-route" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><SeaRoutePlanner /></ProtectedRoute>} />
+              <Route path="/performance" element={<Performance />} />
+              <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'dealer']}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/driver" element={<ProtectedRoute allowedRoles={['driver', 'admin']}><DriverDashboard /></ProtectedRoute>} />
             </Route>
           </Routes>
         </HashRouter>
@@ -90,4 +90,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default App;
