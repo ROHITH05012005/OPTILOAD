@@ -20,10 +20,10 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Set up Node.js
+      - name: Set up Node.js 22 LTS
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install Dependencies
@@ -32,8 +32,10 @@ jobs:
       - name: Build Web Production Assets
         run: npm run build
 
-      - name: Sync Capacitor Android
-        run: npx cap sync android
+      - name: Ensure Android Platform and Sync
+        run: |
+          npx cap add android || true
+          npx cap sync android
 
       - name: Make Gradle Executable
         run: chmod +x android/gradlew

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">OptiLoad 3D</string>
+    <string name="title_activity_main">OptiLoad 3D</string>
+    <string name="package_name">io.optiload.app</string>
+    <string name="custom_url_scheme">io.optiload.app</string>
+</resources>
