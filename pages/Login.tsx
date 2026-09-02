@@ -72,6 +72,8 @@ export const Login: React.FC = () => {
         setError('Sign-in cancelled. Please select your Google account in the popup.');
       } else if (err?.code === 'auth/cancelled-popup-request') {
         setError('Sign-in in progress. Please check your popup windows.');
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        setError(`Domain '${window.location.hostname}' is not authorized in Firebase. Add '${window.location.hostname}' to Firebase Console > Authentication > Settings > Authorized domains, or use the 1-Click Demo Login below.`);
       } else {
         setError(err?.message || 'Google Sign-In failed. Try the 1-Click Demo Login below.');
       }
@@ -79,6 +81,7 @@ export const Login: React.FC = () => {
       setLoading(false);
     }
   };
+
 
   const roles = [
     {
