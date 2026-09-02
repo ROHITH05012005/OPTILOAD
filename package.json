@@ -11,6 +11,11 @@
     "check-env": "node -e \"console.log('API Key:', process.env.VITE_GOOGLE_MAPS_API_KEY ? 'Configured ✅' : 'Missing ❌')\""
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/camera": "^8.2.4",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/geolocation": "^8.2.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.0",
     "firebase": "^12.18.0",
