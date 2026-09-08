@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="optiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+    <linearGradient id="topGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background Glow Circle -->
+  <rect width="64" height="64" rx="16" fill="#090d16" />
+
+  <!-- 3D Isometric Cube / Container -->
+  <g transform="translate(32, 33) scale(0.9)" filter="url(#shadow)">
+    <!-- Top Face -->
+    <path d="M 0,-18 L 18,-9 L 0,0 L -18,-9 Z" fill="url(#topGrad)"/>
+    <!-- Left Face -->
+    <path d="M -18,-9 L 0,0 L 0,18 L -18,9 Z" fill="url(#optiGrad)" opacity="0.95"/>
+    <!-- Right Face -->
+    <path d="M 0,0 L 18,-9 L 18,9 L 0,18 Z" fill="#1e40af"/>
+    <!-- Accent Line Overlay -->
+    <path d="M 0,0 L 0,18" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  </g>
+</svg>

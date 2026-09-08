@@ -55,7 +55,7 @@ export const Dashboard: React.FC = () => {
               System Ready • 100% Operational
             </span>
             <span className="text-xs text-slate-300 dark:text-slate-600">|</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">LogiLoad Enterprise Platform</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">OptiLoad Enterprise Platform</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             Logistics & Freight Command Center

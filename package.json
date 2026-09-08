@@ -1,5 +1,5 @@
 {
-  "name": "logiload-india",
+  "name": "logiload-India",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,11 +8,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "setup-https": "powershell -ExecutionPolicy Bypass -File ./generate-cert.ps1",
-    "check-env": "node -e \"console.log('API Key:', process.env.VITE_GOOGLE_MAPS_API_KEY ? 'Configured ✅' : 'Missing ❌')\""
+    "check-env": "node -e \"console.log('API Key:', process.env.VITE_GOOGLE_MAPS_API_KEY ? 'Configured ✅' : 'Missing ❌')\"",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:watch": "playwright test --watch"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.0",
+    "firebase": "^12.18.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "leaflet": "^1.9.4",
@@ -27,6 +31,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "node-forge": "^1.3.1",

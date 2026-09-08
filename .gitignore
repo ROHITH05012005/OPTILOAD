@@ -7,8 +7,10 @@ node_modules/
 /coverage
 
 # Production
-/build
-/dist
+build/
+dist/
+.firebase/
+.gradle/
 
 # Environment variables
 .env
@@ -42,3 +44,11 @@ ml/data/
 
 # Vite
 .vite/
+
+# Playwright
+test-results/
+playwright-report/
+
+# Miscellaneous
+WhatsApp*
+

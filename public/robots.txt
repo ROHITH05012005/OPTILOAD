@@ -1,0 +1,31 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Allow: /#/$
+Allow: /#/book
+Allow: /#/login
+Disallow: /#/dashboard
+Disallow: /#/admin
+Disallow: /#/driver
+Disallow: /#/inventory
+Disallow: /#/trucks
+Disallow: /#/optimizer
+Disallow: /#/route
+
+# AI Agents & LLM Web Crawlers
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://optiload.in.net/sitemap.xml

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Truck, Package, MapPin, BarChart3, Shield, Users, ArrowRight,
@@ -26,13 +26,10 @@ export const Landing: React.FC = () => {
               <Truck className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              LogiLoad
+              OptiLoad
             </span>
           </div>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Features</a>
-            <a href="#benefits" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Benefits</a>
-            <a href="#testimonials" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Testimonials</a>
+          <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/login')}
               className="bg-white text-black px-6 py-2.5 rounded-full font-semibold hover:bg-cyan-50 transition-all hover:scale-105 active:scale-95"
@@ -65,7 +62,7 @@ export const Landing: React.FC = () => {
             and AI-driven route planning. All in one premium platform.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex justify-center items-center">
             <button
               onClick={() => navigate('/login')}
               className="group relative px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full font-semibold text-lg text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all hover:scale-105 active:scale-95 overflow-hidden"
@@ -76,26 +73,6 @@ export const Landing: React.FC = () => {
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </button>
-            <button
-              onClick={() => navigate('/login')}
-              className="px-8 py-4 bg-white/5 border border-white/10 rounded-full font-semibold text-lg text-white hover:bg-white/10 transition-all backdrop-blur-sm"
-            >
-              Watch Demo
-            </button>
-          </div>
-
-
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-10 border-y border-white/5 bg-white/5 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <StatItem number="10K+" label="Active Users" />
-            <StatItem number="99.9%" label="System Uptime" />
-            <StatItem number="50M+" label="Deliveries" />
-            <StatItem number="24/7" label="Expert Support" />
           </div>
         </div>
       </section>
@@ -155,93 +132,56 @@ export const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-32 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="relative rounded-3xl overflow-hidden p-12 md:p-20 text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900" />
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
-            <div className="absolute top-0 left-0 w-full h-full bg-grid-white/5 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
-
-            <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-bold mb-8 text-white">
-                Ready to Upgrade Your Logistics?
-              </h2>
-              <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-                Join the revolution in supply chain management. Start your free trial of LogiLoad today.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={() => navigate('/login')}
-                  className="px-8 py-4 bg-white text-blue-900 rounded-full font-bold text-lg hover:bg-blue-50 transition-all shadow-xl hover:scale-105 active:scale-95"
-                >
-                  Start Free Trial
-                </button>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="px-8 py-4 bg-blue-800/50 border border-blue-400/30 text-white rounded-full font-bold text-lg hover:bg-blue-800/70 transition-all backdrop-blur-sm"
-                >
-                  Contact Sales
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="border-t border-white/10 bg-black pt-20 pb-10 px-6">
+      <footer className="border-t border-white/10 bg-black pt-16 pb-12 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
+          <div className="grid md:grid-cols-4 gap-10 mb-12">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-2 rounded-lg">
                   <Truck className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-white">LogiLoad</span>
+                <span className="text-xl font-bold text-white tracking-wide">OptiLoad</span>
               </div>
-              <p className="text-slate-400 max-w-sm">
-                Empowering logistics companies with next-generation tools for optimization, tracking, and management.
+              <p className="text-slate-400 max-w-sm text-sm leading-relaxed mb-4">
+                Next-generation intelligent logistics platform optimizing road, air, and maritime freight with real-time fleet telemetry, 3D cargo packing, and automated dispatch intelligence.
               </p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-800/40 text-cyan-400 text-xs font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                System Operational • Cloud Firestore Realtime
+              </div>
             </div>
+
             <div>
-              <h4 className="font-bold text-white mb-6">Platform</h4>
-              <ul className="space-y-4 text-slate-400">
-                <li><a href="#" className="hover:text-cyan-400 transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-cyan-400 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-cyan-400 transition-colors">Enterprise</a></li>
-                <li><a href="#" className="hover:text-cyan-400 transition-colors">Case Studies</a></li>
+              <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider text-slate-300">Solutions</h4>
+              <ul className="space-y-2.5 text-sm text-slate-400">
+                <li><button onClick={() => navigate('/login')} className="hover:text-cyan-400 transition-colors text-left">3D Cargo Packing</button></li>
+                <li><button onClick={() => navigate('/login')} className="hover:text-cyan-400 transition-colors text-left">Multi-Modal Route Planner</button></li>
+                <li><button onClick={() => navigate('/login')} className="hover:text-cyan-400 transition-colors text-left">Live Fleet Telemetry</button></li>
+                <li><button onClick={() => navigate('/book')} className="hover:text-cyan-400 transition-colors text-left">Book a Shipment</button></li>
               </ul>
             </div>
+
             <div>
-              <h4 className="font-bold text-white mb-6">Company</h4>
-              <ul className="space-y-4 text-slate-400">
-                <li><a href="#" className="hover:text-cyan-400 transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-cyan-400 transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-cyan-400 transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-cyan-400 transition-colors">Contact</a></li>
+              <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider text-slate-300">Portals</h4>
+              <ul className="space-y-2.5 text-sm text-slate-400">
+                <li><button onClick={() => navigate('/login')} className="hover:text-cyan-400 transition-colors text-left">Admin & Dispatch Console</button></li>
+                <li><button onClick={() => navigate('/login')} className="hover:text-cyan-400 transition-colors text-left">Fleet Manager Hub</button></li>
+                <li><button onClick={() => navigate('/login')} className="hover:text-cyan-400 transition-colors text-left">Dealer Inventory System</button></li>
+                <li><button onClick={() => navigate('/login')} className="hover:text-cyan-400 transition-colors text-left">Commercial Driver Mobile</button></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-sm">
-            <p>© {new Date().getFullYear()} LogiLoad. All rights reserved.</p>
-            <div className="flex gap-6">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            </div>
+
+          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-xs">
+            <p>© {new Date().getFullYear()} OptiLoad India. All rights reserved.</p>
+            <p className="text-slate-500">Built for Enterprise Freight & Supply Chain Management</p>
           </div>
         </div>
       </footer>
     </div>
   );
 };
-
-const StatItem: React.FC<{ number: string; label: string }> = ({ number, label }) => (
-  <div className="text-center">
-    <div className="text-3xl md:text-4xl font-bold text-white mb-2">{number}</div>
-    <div className="text-slate-400 text-sm uppercase tracking-wider">{label}</div>
-  </div>
-);
 
 const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; description: string; color: string }> = ({ icon, title, description, color }) => {
   const colorMap: Record<string, string> = {

@@ -1,0 +1,29 @@
+# OptiLoad India
+
+> OptiLoad is an intelligent multi-modal logistics platform optimizing road, air, and maritime freight across India with 3D bin packing, TSP/LIFO route planning, live vehicle telemetry, and predictive ML models.
+
+## Overview
+OptiLoad eliminates dead volume in commercial transport, automates load distribution according to vehicle axle safety, and streamlines enterprise dispatch workflows.
+
+## Core Capabilities
+- **3D Load Optimization**: Heuristic and Deep Reinforcement Learning 3D bin packing for 11 popular Indian commercial vehicles (Tata Ace, Ashok Leyland Dost+, Mahindra Furio, Tata Signa), freight aircraft (Boeing 737-800F, ATR 72-600F), and container vessels (Feeder, Handysize).
+- **Hybrid LIFO Route Optimizer**: Solves Travelling Salesperson Problem (TSP) with reverse cargo stacking order for zero-rearrangement multi-drop deliveries.
+- **AI Telemetry & Anomaly Detection**: Isolation Forest and Gradient Boosted models for real-time temperature, cost, delay, and route deviation monitoring.
+- **Inventory Demand Forecasting**: PyTorch 2-layer LSTM neural network for 14-day rolling dealership demand forecasts.
+- **Camera Measurement**: YOLOv8 + ArUco contour computer vision engine for automated parcel dimension ($L \times W \times H$) estimation.
+- **OPTI AI Logistics Assistant**: Powered by NVIDIA Nemotron LLMs to guide shippers, drivers, and fleet managers.
+
+## Key Endpoints & Architecture
+- Website: https://optiload.in.net
+- Public Landing Page: https://optiload.in.net/#/
+- Instant Shipment Booking: https://optiload.in.net/#/book
+- Enterprise Portal Sign-in: https://optiload.in.net/#/login
+- Database: Google Cloud Firestore Realtime NoSQL Document Store
+- Cloud Hosting: Firebase Global Edge CDN
+- Backend API (Local/Production): FastAPI on `/api/v1`
+
+## Roles & Access
+- Fleet Admin & Dispatcher: Full system telemetry, driver assignment, cost analytics.
+- Logistics Manager: Multi-modal 3D optimizer (Truck, Air, Sea) and route planning.
+- Dealership Hub: Inventory scanning, shipment tracking, and delivery requests.
+- Commercial Driver: Mobile portal with turn-by-turn route delivery checklist and QR scanner.

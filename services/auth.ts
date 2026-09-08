@@ -21,6 +21,7 @@ export interface DriverData {
   id: string;
   username: string;
   password: string; // In a real app, this would be hashed
+  email: string;   // Firebase Auth email for login
   name: string;
   phone: string;
   truckId?: string;
@@ -136,6 +137,7 @@ const DEFAULT_DRIVERS: DriverData[] = [
     id: 'driver-1',
     username: 'driver1',
     password: 'driver123',
+    email: 'raj.kumar@optiload.in',
     name: 'Raj Kumar',
     phone: '+91 98765 43210',
     truckId: 'tata-1109',
@@ -145,6 +147,7 @@ const DEFAULT_DRIVERS: DriverData[] = [
     id: 'driver-2',
     username: 'driver2',
     password: 'driver123',
+    email: 'amit.sharma@optiload.in',
     name: 'Amit Sharma',
     phone: '+91 98765 43211',
     truckId: 'eicher-12ft',
@@ -154,6 +157,7 @@ const DEFAULT_DRIVERS: DriverData[] = [
     id: 'driver-3',
     username: 'driver3',
     password: 'driver123',
+    email: 'suresh.patel@optiload.in',
     name: 'Suresh Patel',
     phone: '+91 98765 43212',
     truckId: 'bharatbenz-1623r',

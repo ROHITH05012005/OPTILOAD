@@ -23,13 +23,13 @@ import {
   Truck
 } from 'lucide-react';
 import {
-  AuthService,
+  FirestoreService,
   DeliveryData,
   DealershipData,
   DemandForecast,
   TrackingMilestone,
   MessageData
-} from '../services/auth';
+} from '../services/firestoreService';
 import { ApiClient } from '../services/apiClient';
 
 export const DealerDashboard: React.FC = () => {
@@ -85,60 +85,54 @@ export const DealerDashboard: React.FC = () => {
     } catch (e) {
       console.warn('Backend LSTM call failed, using fallback forecasts:', e);
     }
-    const f = AuthService.getDemandForecasts(dealerId);
+    const f = FirestoreService.getDemandForecasts(dealerId);
     setForecasts(f);
   };
 
   useEffect(() => {
     // Load dealer data
-    const dealershipsList = AuthService.getDealerships();
+    const dealershipsList = FirestoreService.getDealerships();
     const currentDealer = dealershipsList[0];
     setDealership(currentDealer);
 
     if (currentDealer) {
       loadForecastsFromBackend(currentDealer.id);
 
-      // Load deliveries destined for this dealer's city or matching drop location
-      const allDeliveries = AuthService.getDeliveries();
-      const dealerDeliveries = allDeliveries.filter(
-        d => d.dropLocation.toLowerCase().includes(currentDealer.city.split(',')[0].toLowerCase()) ||
-             d.dropLocation.toLowerCase().includes('mumbai')
-      );
-      setDeliveries(dealerDeliveries);
-      if (dealerDeliveries.length > 0) {
-        setSelectedDelivery(dealerDeliveries[0]);
-        setMilestones(AuthService.getTrackingMilestones(dealerDeliveries[0].id));
-        setMessages(AuthService.getMessagesByDelivery(dealerDeliveries[0].id));
-      }
-      
+      // Subscribe to real-time deliveries destined for this dealer
+      const unsubDeliveries = FirestoreService.subscribeDeliveries((allDeliveries) => {
+        const dealerDeliveries = allDeliveries.filter(
+          d => d.dropLocation.toLowerCase().includes(currentDealer.city.split(',')[0].toLowerCase()) ||
+               d.dropLocation.toLowerCase().includes('mumbai')
+        );
+        setDeliveries(dealerDeliveries);
+        if (dealerDeliveries.length > 0) {
+          setSelectedDelivery(prev => {
+            const found = prev ? dealerDeliveries.find(d => d.id === prev.id) : null;
+            const chosen = found || dealerDeliveries[0];
+            setMilestones(FirestoreService.getTrackingMilestones(chosen, allDeliveries));
+            return chosen;
+          });
+        }
+      });
+
       setBookingForm(prev => ({
         ...prev,
         dropLocation: currentDealer.location
       }));
+
+      return () => unsubDeliveries();
     }
   }, []);
 
-  // Poll for messages and updates
+  // Real-time messages & milestone subscription for selected delivery
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (selectedDelivery) {
-        setMessages(AuthService.getMessagesByDelivery(selectedDelivery.id));
-        setMilestones(AuthService.getTrackingMilestones(selectedDelivery.id));
-      }
-      
-      // Sync deliveries list
-      if (dealership) {
-        const allDeliveries = AuthService.getDeliveries();
-        const dealerDeliveries = allDeliveries.filter(
-          d => d.dropLocation.toLowerCase().includes(dealership.city.split(',')[0].toLowerCase()) ||
-               d.dropLocation.toLowerCase().includes('mumbai')
-        );
-        setDeliveries(dealerDeliveries);
-      }
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [selectedDelivery, dealership]);
+    if (!selectedDelivery) return;
+    const unsub = FirestoreService.subscribeMessages(selectedDelivery.id, (msgs) => {
+      setMessages(msgs);
+    });
+    setMilestones(FirestoreService.getTrackingMilestones(selectedDelivery, deliveries));
+    return () => unsub();
+  }, [selectedDelivery?.id]);
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -150,28 +144,29 @@ export const DealerDashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const handleSelectDelivery = (delivery: DeliveryData) => {
+  const handleSelectDelivery = async (delivery: DeliveryData) => {
     setSelectedDelivery(delivery);
-    setMilestones(AuthService.getTrackingMilestones(delivery.id));
-    setMessages(AuthService.getMessagesByDelivery(delivery.id));
+    setMilestones(FirestoreService.getTrackingMilestones(delivery, deliveries));
+    const msgs = await FirestoreService.getMessagesByDelivery(delivery.id);
+    setMessages(msgs);
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDelivery || !newMessageText.trim()) return;
 
-    const newMsg = AuthService.sendMessage({
+    const newMsg = await FirestoreService.sendMessage({
       deliveryId: selectedDelivery.id,
       senderId: 'dealer-1',
       senderRole: 'dealer',
       content: newMessageText.trim()
     });
 
-    setMessages([...messages, newMsg]);
+    setMessages(prev => [...prev, newMsg]);
     setNewMessageText('');
   };
 
-  const handleCreateBooking = (e: React.FormEvent) => {
+  const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Create an item list for this booking request
@@ -189,7 +184,7 @@ export const DealerDashboard: React.FC = () => {
       isStackable: true
     }));
 
-    AuthService.createBooking({
+    await FirestoreService.createBooking({
       customerName: dealership?.name || 'Dealership Customer',
       customerPhone: dealership?.phone || '+91 99999 99999',
       pickupLocation: bookingForm.pickupLocation,

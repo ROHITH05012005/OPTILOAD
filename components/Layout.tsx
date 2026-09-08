@@ -23,7 +23,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     '/performance': 'AI Model Analytics & SHAP',
   };
 
-  const pageTitle = pathTitles[location.pathname] || 'LogiLoad Enterprise';
+  const pageTitle = pathTitles[location.pathname] || 'OptiLoad Enterprise';
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex text-slate-900 dark:text-slate-100 transition-colors">
@@ -60,7 +60,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         {/* Global Enterprise Footer */}
         <footer className="border-t border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 px-4 py-3 text-xs text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800 dark:text-slate-300">LogiLoad India</span>
+            <span className="font-bold text-slate-800 dark:text-slate-300">OptiLoad India</span>
             <span>— AI Multi-Modal Logistics & 3D Load Optimization Platform</span>
           </div>
           <div className="flex items-center gap-3 text-[11px]">
@@ -68,7 +68,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               FastAPI + PyTorch Active
             </span>
-            <span>&copy; {new Date().getFullYear()} LogiLoad Technologies</span>
+            <span>&copy; {new Date().getFullYear()} OptiLoad Technologies</span>
           </div>
         </footer>
       </div>

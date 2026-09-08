@@ -11,7 +11,7 @@ interface ChatMessage {
 export const LandingChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { sender: 'bot', text: 'Namaste! Welcome to LogiLoad India. I am your AI Logistics Assistant. How can I help you optimize your shipping, routes, or load today?' }
+    { sender: 'bot', text: 'Namaste! Welcome to OptiLoad India. I am OPTI AI, your intelligent logistics assistant. How can I help you optimize your shipping, routes, or load today?' }
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -35,7 +35,7 @@ export const LandingChatbot: React.FC = () => {
       return "Our 3D Bin Packing Optimizer uses weight-aware heuristics to maximize cargo container volume. It places heavy items on the floor first, stackable items next, and fragile cargo on top. This keeps the vehicle's Center of Gravity low and prevents structural damage.";
     }
     if (q.includes('sea') || q.includes('air') || q.includes('ship') || q.includes('flight') || q.includes('lane')) {
-      return "Yes! LogiLoad features geodesic air-route plotting and snap-to-seaway Dijkstra maritime routing. It automatically pulls live wind coordinates and marine wave heights from Open-Meteo APIs to calculate optimal speed adjustments and fuel consumption.";
+      return "Yes! OptiLoad features geodesic air-route plotting and snap-to-seaway Dijkstra maritime routing. It automatically pulls live wind coordinates and marine wave heights from Open-Meteo APIs to calculate optimal speed adjustments and fuel consumption.";
     }
     if (q.includes('truck') || q.includes('fleet') || q.includes('india') || q.includes('tata') || q.includes('ashok')) {
       return "We support 11 popular Indian transport vehicles, ranging from light Ashok Leyland Dost+ (1.9T) and Tata 407 (4T) up to high-capacity multi-axle Mahindra Furio (17T) and Tata Signa (48T) logistics trailers.";
@@ -43,10 +43,10 @@ export const LandingChatbot: React.FC = () => {
     if (q.includes('lifo') || q.includes('hybrid') || q.includes('route')) {
       return "The Hybrid LIFO Optimizer solves the Travelling Salesperson Problem (TSP) for your delivery stops, then reverses the loading sequence. Items for the last stop are packed first (deep inside the truck), and items for the first stop are packed last (nearest the door). This allows immediate unloading at each stop without rearranging cargo!";
     }
-    if (q.includes('price') || q.includes('cost') || q.includes('free') || q.includes('trial')) {
-      return "LogiLoad is free to try! You can sign up, add customized trucks and cargo lists, import bulk excel sheets, and calculate routes without registering a credit card. Switch to our Enterprise Plan for automated API integrations.";
+    if (q.includes('login') || q.includes('sign in') || q.includes('role') || q.includes('account')) {
+      return "OptiLoad supports 4 enterprise roles: Fleet Admin, Logistics Manager, Dealership Hub, and Mobile Driver. Click 'Sign In' at the top right to log in or create your account.";
     }
-    return "That is a great question! LogiLoad India is built on modern heuristics combining Dijkstra seaway grids, Nominatim geocoding, OSRM road engines, and weight-balanced 3D packing. Would you like to sign in as Admin or Dealer to test the live panels?";
+    return "I can only assist with inquiries regarding the OptiLoad platform, 3D container packing, multi-modal routing, and fleet optimization. Please sign in to access full features and data tools.";
   };
 
   const handleSendMessage = async (text: string) => {
@@ -73,27 +73,21 @@ export const LandingChatbot: React.FC = () => {
       // 2. Fallback to OpenRouter Client
       const history = messages.map(m => ({
         role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
-        content: m.text
+        content: typeof m.text === 'string' ? m.text : (m.text as any)?.text || ''
       }));
 
-      const response = await OpenRouterService.generateResponse(text, history);
-      if (response.source === 'openrouter' && response.text) {
-        setMessages((prev) => [...prev, { sender: 'bot', text: response.text }]);
+      const res = await OpenRouterService.generateResponse(text, history);
+      if (res && res.text) {
+        setMessages(prev => [...prev, { sender: 'bot', text: res.text }]);
       } else {
-        const fallback = getBotResponse(text);
-        setMessages((prev) => [
-          ...prev,
-          {
-            sender: 'bot',
-            text: response.error
-              ? `${fallback}\n\n_(AI API: ${response.error.slice(0, 120)})_`
-              : fallback,
-          },
-        ]);
+        const reply = getBotResponse(text);
+        setMessages(prev => [...prev, { sender: 'bot', text: reply }]);
       }
-    } catch (e) {
-      const fallback = getBotResponse(text);
-      setMessages((prev) => [...prev, { sender: 'bot', text: fallback }]);
+    } catch (err: any) {
+      console.error('Chat error:', err);
+      // 3. Fallback to offline rule-based knowledge base
+      const reply = getBotResponse(text);
+      setMessages(prev => [...prev, { sender: 'bot', text: reply }]);
     } finally {
       setIsTyping(false);
     }
@@ -111,7 +105,7 @@ export const LandingChatbot: React.FC = () => {
           <span className="absolute top-0 right-0 w-3 h-3 bg-pink-500 rounded-full border border-gray-900 animate-pulse"></span>
           <MessageSquare className="w-6 h-6" />
           <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-out whitespace-nowrap text-sm font-semibold ml-0 group-hover:ml-2">
-            Ask AI Assistant
+            Chat with OPTI AI
           </span>
         </button>
       )}
@@ -128,11 +122,12 @@ export const LandingChatbot: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-sm leading-none flex items-center gap-1.5">
-                  AI Logistics Assistant
+                  OPTI AI
                   <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
                 </h3>
-                <span className="text-[10px] text-blue-100 font-medium">
-                  NVIDIA Nemotron (free) · OpenRouter
+                <span className="text-[10px] text-blue-100 font-medium flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  OptiLoad Logistics Intelligence • Online
                 </span>
               </div>
             </div>
@@ -159,7 +154,7 @@ export const LandingChatbot: React.FC = () => {
                     ? 'bg-blue-600 text-white rounded-tr-none'
                     : 'bg-gray-800 text-gray-200 rounded-tl-none border border-gray-700/40'
                 }`}>
-                  {msg.text}
+                  {typeof msg.text === 'string' ? msg.text : ((msg.text as any)?.text || JSON.stringify(msg.text))}
                 </div>
               </div>
             ))}
@@ -212,7 +207,7 @@ export const LandingChatbot: React.FC = () => {
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask anything about LogiLoad..."
+              placeholder="Ask anything about OptiLoad..."
               className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-xs text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none transition"
             />
             <button

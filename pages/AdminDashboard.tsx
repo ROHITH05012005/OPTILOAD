@@ -34,10 +34,10 @@ import {
   RefreshCw,
   Sparkles
 } from 'lucide-react';
+import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { AuthService, DeliveryData, DriverData, MessageData, BookingRequest } from '../services/auth';
+import { FirestoreService, DeliveryData, DriverData, MessageData, BookingRequest } from '../services/firestoreService';
 import { TRUCK_OPTIONS } from '../constants';
 import { DealerDashboard } from '../components/DealerDashboard';
 import { wsTelemetryService } from '../services/websocket';
@@ -52,6 +52,7 @@ L.Icon.Default.mergeOptions({
 
 export const AdminDashboard: React.FC = () => {
   const userRole = localStorage.getItem('userRole');
+  const isAdmin = userRole === 'admin';
 
   if (userRole === 'dealer') {
     return <DealerDashboard />;
@@ -70,6 +71,7 @@ export const AdminDashboard: React.FC = () => {
   const [showBookingItemsModal, setShowBookingItemsModal] = useState(false);
   const [selectedDriverIds, setSelectedDriverIds] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<MessageData[]>([]);
+  const [messagesMap, setMessagesMap] = useState<Record<string, MessageData[]>>({});
   const [newMessage, setNewMessage] = useState('');
 
   // Filters and Search state
@@ -83,6 +85,7 @@ export const AdminDashboard: React.FC = () => {
   const [driverFormData, setDriverFormData] = useState({
     username: '',
     password: '',
+    email: '',
     name: '',
     phone: '',
     licenseNumber: '',
@@ -117,19 +120,40 @@ export const AdminDashboard: React.FC = () => {
     status: string;
   }>>([]);
 
-  // Load data on component mount and set up polling
+  // Real-time subscriptions for Deliveries, Drivers, and Bookings
   useEffect(() => {
-    loadData();
+    const unsubDeliveries = FirestoreService.subscribeDeliveries((dels) => {
+      setDeliveries(dels);
+      dels.forEach(async (del) => {
+        const msgs = await FirestoreService.getMessagesByDelivery(del.id);
+        setMessagesMap(prev => ({ ...prev, [del.id]: msgs }));
+      });
+    });
 
-    // Poll for new messages every 3 seconds when message modal is open
-    const interval = setInterval(() => {
-      if (showMessageModal && selectedDelivery) {
-        const deliveryMessages = AuthService.getMessagesByDelivery(selectedDelivery.id);
-        setMessages(deliveryMessages);
-      }
-    }, 3000);
+    const unsubDrivers = FirestoreService.subscribeDrivers((drvs) => {
+      setDrivers(drvs);
+    });
 
-    return () => clearInterval(interval);
+    const unsubBookings = FirestoreService.subscribeBookings((bks) => {
+      setBookings(bks);
+    });
+
+    return () => {
+      unsubDeliveries();
+      unsubDrivers();
+      unsubBookings();
+    };
+  }, []);
+
+  // Real-time chat messages subscription when modal is open
+  useEffect(() => {
+    if (showMessageModal && selectedDelivery) {
+      const unsub = FirestoreService.subscribeMessages(selectedDelivery.id, (msgs) => {
+        setMessages(msgs);
+        setMessagesMap(prev => ({ ...prev, [selectedDelivery.id]: msgs }));
+      });
+      return () => unsub();
+    }
   }, [showMessageModal, selectedDelivery]);
 
   // Subscribe to real-time WebSocket telemetry with HTTP polling fallback
@@ -164,10 +188,13 @@ export const AdminDashboard: React.FC = () => {
     };
   }, []);
 
-  const loadData = () => {
-    setDeliveries(AuthService.getDeliveries());
-    setDrivers(AuthService.getDrivers());
-    setBookings(AuthService.getBookings());
+  const loadData = async () => {
+    const dels = await FirestoreService.getDeliveries();
+    setDeliveries(dels);
+    const drvs = await FirestoreService.getDrivers();
+    setDrivers(drvs);
+    const bks = await FirestoreService.getBookings();
+    setBookings(bks);
   };
 
   const handleLogout = () => {
@@ -179,8 +206,8 @@ export const AdminDashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const handleCreateDelivery = () => {
-    const newDelivery = AuthService.createDelivery({
+  const handleCreateDelivery = async () => {
+    await FirestoreService.createDelivery({
       customerId: `customer-${Date.now()}`,
       customerName: formData.customerName,
       customerPhone: formData.customerPhone,
@@ -196,15 +223,14 @@ export const AdminDashboard: React.FC = () => {
       scheduledTime: formData.scheduledTime
     });
 
-    setDeliveries([...deliveries, newDelivery]);
     setShowCreateForm(false);
     resetForm();
   };
 
-  const handleUpdateDelivery = () => {
+  const handleUpdateDelivery = async () => {
     if (!selectedDelivery) return;
 
-    const updatedDelivery = AuthService.updateDelivery(selectedDelivery.id, {
+    await FirestoreService.updateDelivery(selectedDelivery.id, {
       customerName: formData.customerName,
       customerPhone: formData.customerPhone,
       pickupLocation: formData.pickupLocation,
@@ -219,28 +245,20 @@ export const AdminDashboard: React.FC = () => {
       scheduledTime: formData.scheduledTime
     });
 
-    if (updatedDelivery) {
-      setDeliveries(deliveries.map(d => d.id === selectedDelivery.id ? updatedDelivery : d));
-    }
-
     setShowEditForm(false);
     resetForm();
   };
 
-  const handleDeleteDelivery = (id: string) => {
+  const handleDeleteDelivery = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this delivery?')) {
-      AuthService.deleteDelivery(id);
-      setDeliveries(deliveries.filter(d => d.id !== id));
+      await FirestoreService.deleteDelivery(id);
     }
   };
 
-  const handleAssignDriver = (deliveryId: string, driverId: string) => {
+  const handleAssignDriver = async (deliveryId: string, driverId: string) => {
     if (driverId) {
-      const updatedDelivery = AuthService.assignDriver(deliveryId, driverId);
-      if (updatedDelivery) {
-        setDeliveries(deliveries.map(d => d.id === deliveryId ? updatedDelivery : d));
-        setSelectedDriverIds(prev => ({ ...prev, [deliveryId]: '' }));
-      }
+      await FirestoreService.assignDriver(deliveryId, driverId);
+      setSelectedDriverIds(prev => ({ ...prev, [deliveryId]: '' }));
     }
   };
 
@@ -252,14 +270,11 @@ export const AdminDashboard: React.FC = () => {
     return selectedDriverIds[deliveryId] || '';
   };
 
-  const handleStatusChange = (deliveryId: string, status: DeliveryData['status']) => {
-    const updatedDelivery = AuthService.updateDelivery(deliveryId, { status });
-    if (updatedDelivery) {
-      setDeliveries(deliveries.map(d => d.id === deliveryId ? updatedDelivery : d));
-    }
+  const handleStatusChange = async (deliveryId: string, status: DeliveryData['status']) => {
+    await FirestoreService.updateDelivery(deliveryId, { status });
   };
 
-  const handleApproveBooking = (booking: BookingRequest) => {
+  const handleApproveBooking = async (booking: BookingRequest) => {
     const totalWeight = booking.items && booking.items.length > 0
       ? booking.items.reduce((sum: number, item: any) => sum + (item.weight || 0), 0)
       : 150;
@@ -268,7 +283,7 @@ export const AdminDashboard: React.FC = () => {
       ? booking.items[0].dimensions
       : { length: 60, width: 60, height: 45 };
 
-    const newDelivery = AuthService.createDelivery({
+    await FirestoreService.createDelivery({
       customerId: `customer-${Date.now()}`,
       customerName: booking.customerName,
       customerPhone: booking.customerPhone,
@@ -280,20 +295,12 @@ export const AdminDashboard: React.FC = () => {
       scheduledTime: booking.scheduledTime
     });
 
-    setDeliveries([...deliveries, newDelivery]);
-
-    const updatedBooking = AuthService.updateBookingStatus(booking.id, 'approved');
-    if (updatedBooking) {
-      setBookings(bookings.map(b => b.id === booking.id ? updatedBooking : b));
-    }
+    await FirestoreService.updateBookingStatus(booking.id, 'approved');
   };
 
-  const handleRejectBooking = (id: string) => {
+  const handleRejectBooking = async (id: string) => {
     if (window.confirm('Are you sure you want to reject this booking?')) {
-      const updatedBooking = AuthService.updateBookingStatus(id, 'rejected');
-      if (updatedBooking) {
-        setBookings(bookings.map(b => b.id === id ? updatedBooking : b));
-      }
+      await FirestoreService.updateBookingStatus(id, 'rejected');
     }
   };
 
@@ -314,10 +321,11 @@ export const AdminDashboard: React.FC = () => {
     setShowEditForm(true);
   };
 
-  const openMessageModal = (deliveryId: string) => {
-    const deliveryMessages = AuthService.getMessagesByDelivery(deliveryId);
+  const openMessageModal = async (deliveryId: string) => {
+    const del = deliveries.find(d => d.id === deliveryId) || null;
+    setSelectedDelivery(del);
+    const deliveryMessages = await FirestoreService.getMessagesByDelivery(deliveryId);
     setMessages(deliveryMessages);
-    setSelectedDelivery(deliveries.find(d => d.id === deliveryId) || null);
     setShowMessageModal(true);
   };
 
@@ -326,15 +334,15 @@ export const AdminDashboard: React.FC = () => {
     setShowBookingItemsModal(true);
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (selectedDelivery && newMessage.trim()) {
-      const message = AuthService.sendMessage({
+      const message = await FirestoreService.sendMessage({
         deliveryId: selectedDelivery.id,
         senderId: 'admin',
         senderRole: 'admin',
         content: newMessage
       });
-      setMessages([...messages, message]);
+      setMessages(prev => [...prev, message]);
       setNewMessage('');
     }
   };
@@ -359,6 +367,7 @@ export const AdminDashboard: React.FC = () => {
     setDriverFormData({
       username: '',
       password: '',
+      email: '',
       name: '',
       phone: '',
       licenseNumber: '',
@@ -367,40 +376,39 @@ export const AdminDashboard: React.FC = () => {
     setSelectedDriver(null);
   };
 
-  const handleAddDriver = () => {
-    AuthService.addDriver({
+  const handleAddDriver = async () => {
+    await FirestoreService.addDriver({
       username: driverFormData.username,
       password: driverFormData.password,
+      email: driverFormData.email,
       name: driverFormData.name,
       phone: driverFormData.phone,
       licenseNumber: driverFormData.licenseNumber,
       truckId: driverFormData.truckId || undefined
     });
 
-    setDrivers(AuthService.getDrivers());
     setShowAddDriverForm(false);
     resetDriverForm();
   };
 
-  const handleUpdateDriver = () => {
+  const handleUpdateDriver = async () => {
     if (!selectedDriver) return;
 
-    AuthService.updateDriver(selectedDriver.id, {
+    await FirestoreService.updateDriver(selectedDriver.id, {
+      email: driverFormData.email,
       name: driverFormData.name,
       phone: driverFormData.phone,
       licenseNumber: driverFormData.licenseNumber,
       truckId: driverFormData.truckId || undefined
     });
 
-    setDrivers(AuthService.getDrivers());
     setShowEditDriverForm(false);
     resetDriverForm();
   };
 
-  const handleDeleteDriver = (id: string) => {
+  const handleDeleteDriver = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this driver?')) {
-      AuthService.deleteDriver(id);
-      setDrivers(drivers.filter(d => d.id !== id));
+      await FirestoreService.deleteDriver(id);
     }
   };
 
@@ -414,6 +422,7 @@ export const AdminDashboard: React.FC = () => {
     setDriverFormData({
       username: driver.username,
       password: '',
+      email: driver.email || '',
       name: driver.name,
       phone: driver.phone,
       licenseNumber: driver.licenseNumber,
@@ -1038,13 +1047,15 @@ export const AdminDashboard: React.FC = () => {
                                 >
                                   <Edit className="h-3.5 w-3.5" />
                                 </button>
-                                <button
-                                  onClick={() => handleDeleteDelivery(delivery.id)}
-                                  className="p-1.5 text-rose-400 hover:text-rose-300 bg-slate-800 hover:bg-rose-950/40 rounded transition"
-                                  title="Delete Delivery"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => handleDeleteDelivery(delivery.id)}
+                                    className="p-1.5 text-rose-400 hover:text-rose-300 bg-slate-800 hover:bg-rose-950/40 rounded transition"
+                                    title="Delete Delivery (Admin only)"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1078,7 +1089,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {drivers.map((driver) => {
                 const truck = TRUCK_OPTIONS.find(t => t.id === driver.truckId);
-                const stats = AuthService.getDriverStats(driver.id);
+                const stats = FirestoreService.getDriverStats(driver.id, deliveries);
                 const activeTrips = deliveries.filter(d => d.assignedDriverId === driver.id && !['completed', 'cancelled'].includes(d.status));
 
                 return (
@@ -1102,13 +1113,15 @@ export const AdminDashboard: React.FC = () => {
                           >
                             <Edit className="h-3.5 w-3.5" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteDriver(driver.id)}
-                            className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 transition"
-                            title="Delete Driver"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteDriver(driver.id)}
+                              className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 transition"
+                              title="Delete Driver (Admin only)"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -1240,13 +1253,23 @@ export const AdminDashboard: React.FC = () => {
                                   <CheckCircle className="h-3.5 w-3.5" />
                                   <span>Approve</span>
                                 </button>
-                                <button
-                                  onClick={() => handleRejectBooking(booking.id)}
-                                  className="flex items-center gap-1 bg-slate-800 hover:bg-rose-900/60 text-rose-300 px-3 py-1.5 rounded-md font-medium border border-slate-700 transition"
-                                >
-                                  <XCircle className="h-3.5 w-3.5" />
-                                  <span>Reject</span>
-                                </button>
+                                {isAdmin ? (
+                                  <button
+                                    onClick={() => handleRejectBooking(booking.id)}
+                                    className="flex items-center gap-1 bg-slate-800 hover:bg-rose-900/60 text-rose-300 px-3 py-1.5 rounded-md font-medium border border-slate-700 transition"
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                    <span>Reject</span>
+                                  </button>
+                                ) : (
+                                  <span
+                                    title="Rejection requires Admin access"
+                                    className="flex items-center gap-1 text-slate-600 px-3 py-1.5 rounded-md font-medium border border-slate-800 cursor-not-allowed select-none"
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                    <span>Reject</span>
+                                  </span>
+                                )}
                               </div>
                             )}
                           </td>
@@ -1429,7 +1452,7 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {deliveries.map(delivery => {
-                const deliveryMessages = AuthService.getMessagesByDelivery(delivery.id);
+                const deliveryMessages = messagesMap[delivery.id] || [];
                 if (deliveryMessages.length === 0) return null;
                 const driver = drivers.find(d => d.id === delivery.assignedDriverId);
 
@@ -1890,6 +1913,21 @@ export const AdminDashboard: React.FC = () => {
                   placeholder="e.g. Ramesh Patil"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Firebase Login Email
+                </label>
+                <input
+                  type="email"
+                  value={driverFormData.email}
+                  onChange={(e) => setDriverFormData({ ...driverFormData, email: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-brand-500"
+                  placeholder="driver@optiload.in"
+                  required
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Driver uses this email to sign in at the login page.</p>
               </div>
 
               <div>

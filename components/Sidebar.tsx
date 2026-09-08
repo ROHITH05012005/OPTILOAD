@@ -118,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         <Link 
           to="/" 
           className={`flex items-center gap-2.5 group ${collapsed && !mobileOpen ? 'w-full justify-center' : ''}`}
-          title="LogiLoad Dashboard"
+          title="OptiLoad Dashboard"
         >
           <div className="bg-gradient-to-tr from-brand-600 to-blue-500 p-2 rounded-xl shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
             <Truck className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -126,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           {(!collapsed || mobileOpen) && (
             <div className="flex flex-col min-w-0">
               <span className="font-black text-base tracking-tight text-slate-900 dark:text-white flex items-center gap-1">
-                Logi<span className="text-brand-500">Load</span>
+                Opti<span className="text-brand-500">Load</span>
                 <span className="text-[9px] bg-brand-500/10 text-brand-600 dark:text-brand-300 font-bold px-1 rounded border border-brand-500/20">IN</span>
               </span>
               <span className="text-[9px] text-slate-400 font-mono tracking-wider">AI LOGISTICS</span>

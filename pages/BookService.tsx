@@ -18,7 +18,7 @@ import {
     Sparkles
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { AuthService } from '../services/auth';
+import { FirestoreService } from '../services/firestoreService';
 import { CameraDimensionScanner } from '../components/CameraDimensionScanner';
 
 interface Dimensions {
@@ -170,7 +170,7 @@ export const BookService: React.FC = () => {
     };
 
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const itemsToSubmit = inputMode === 'excel' ? parsedItems : items;
@@ -183,7 +183,7 @@ export const BookService: React.FC = () => {
         }
 
         try {
-            AuthService.createBooking({
+            await FirestoreService.createBooking({
                 customerName: formData.customerName,
                 customerPhone: formData.customerPhone,
                 pickupLocation: formData.pickupLocation,
@@ -195,6 +195,7 @@ export const BookService: React.FC = () => {
             alert('Booking request submitted successfully! Our admin will review and assign a truck shortly.');
             navigate('/');
         } catch (err) {
+            console.error('Failed to submit booking:', err);
             setError('Failed to submit booking. Please try again.');
         }
     };
@@ -216,7 +217,7 @@ export const BookService: React.FC = () => {
                             <Truck className="w-7 h-7 text-white" />
                         </div>
                         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                            LogiLoad Booking
+                            OptiLoad Booking
                         </h1>
                     </div>
                     <button

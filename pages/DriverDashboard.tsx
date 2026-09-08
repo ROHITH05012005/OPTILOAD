@@ -21,7 +21,7 @@ import {
   Radio,
   ArrowRight
 } from 'lucide-react';
-import { AuthService, DeliveryData, MessageData } from '../services/auth';
+import { FirestoreService, DeliveryData, MessageData } from '../services/firestoreService';
 import { TRUCK_OPTIONS } from '../constants';
 import { wsTelemetryService } from '../services/websocket';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -42,6 +42,8 @@ export const DriverDashboard: React.FC = () => {
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryData | null>(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [messages, setMessages] = useState<MessageData[]>([]);
+  const [messagesMap, setMessagesMap] = useState<Record<string, MessageData[]>>({});
+  const [driverTruckId, setDriverTruckId] = useState<string | undefined>(undefined);
   const [newMessage, setNewMessage] = useState('');
   const [issueType, setIssueType] = useState('');
   const [issueDescription, setIssueDescription] = useState('');
@@ -102,26 +104,34 @@ export const DriverDashboard: React.FC = () => {
     };
   }, [isGpsStreaming, driverId, driverName]);
 
-  // Load data on component mount and set up polling
+  // Load live deliveries & subscribe
   useEffect(() => {
-    loadData();
+    FirestoreService.getDriverById(driverId).then(d => {
+      if (d?.truckId) setDriverTruckId(d.truckId);
+    });
 
-    // Poll for new messages every 3 seconds when message modal is open
-    const interval = setInterval(() => {
-      if (showMessageModal && selectedDelivery) {
-        const deliveryMessages = AuthService.getMessagesByDelivery(selectedDelivery.id);
-        setMessages(deliveryMessages);
-      }
-    }, 3000);
+    const unsubDeliveries = FirestoreService.subscribeDeliveries((allDeliveries) => {
+      const driverDeliveries = allDeliveries.filter(d => d.assignedDriverId === driverId);
+      setDeliveries(driverDeliveries);
+      driverDeliveries.forEach(async (del) => {
+        const msgs = await FirestoreService.getMessagesByDelivery(del.id);
+        setMessagesMap(prev => ({ ...prev, [del.id]: msgs }));
+      });
+    });
 
-    return () => clearInterval(interval);
+    return () => unsubDeliveries();
+  }, [driverId]);
+
+  // Real-time chat messages subscription when modal is open
+  useEffect(() => {
+    if (showMessageModal && selectedDelivery) {
+      const unsub = FirestoreService.subscribeMessages(selectedDelivery.id, (msgs) => {
+        setMessages(msgs);
+        setMessagesMap(prev => ({ ...prev, [selectedDelivery.id]: msgs }));
+      });
+      return () => unsub();
+    }
   }, [showMessageModal, selectedDelivery]);
-
-  const loadData = () => {
-    const allDeliveries = AuthService.getDeliveries();
-    const driverDeliveries = allDeliveries.filter(d => d.assignedDriverId === driverId);
-    setDeliveries(driverDeliveries);
-  };
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -132,32 +142,33 @@ export const DriverDashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const handleStatusChange = (deliveryId: string, status: DeliveryData['status']) => {
-    const updatedDelivery = AuthService.updateDelivery(deliveryId, { status });
+  const handleStatusChange = async (deliveryId: string, status: DeliveryData['status']) => {
+    const updatedDelivery = await FirestoreService.updateDelivery(deliveryId, { status });
     if (updatedDelivery) {
-      setDeliveries(deliveries.map(d => d.id === deliveryId ? updatedDelivery : d));
+      setDeliveries(prev => prev.map(d => d.id === deliveryId ? updatedDelivery : d));
       if (selectedDelivery && selectedDelivery.id === deliveryId) {
         setSelectedDelivery(updatedDelivery);
       }
     }
   };
 
-  const openMessageModal = (deliveryId: string) => {
-    const deliveryMessages = AuthService.getMessagesByDelivery(deliveryId);
+  const openMessageModal = async (deliveryId: string) => {
+    const del = deliveries.find(d => d.id === deliveryId) || null;
+    setSelectedDelivery(del);
+    const deliveryMessages = await FirestoreService.getMessagesByDelivery(deliveryId);
     setMessages(deliveryMessages);
-    setSelectedDelivery(deliveries.find(d => d.id === deliveryId) || null);
     setShowMessageModal(true);
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (selectedDelivery && newMessage.trim()) {
-      const message = AuthService.sendMessage({
+      const message = await FirestoreService.sendMessage({
         deliveryId: selectedDelivery.id,
         senderId: driverId,
         senderRole: 'driver',
         content: newMessage
       });
-      setMessages([...messages, message]);
+      setMessages(prev => [...prev, message]);
       setNewMessage('');
     }
   };
@@ -167,10 +178,10 @@ export const DriverDashboard: React.FC = () => {
     setShowIssueModal(true);
   };
 
-  const reportIssue = () => {
+  const reportIssue = async () => {
     if (selectedDelivery && issueType) {
       const issueMessage = `ISSUE REPORTED: ${issueType}${issueDescription ? ` - ${issueDescription}` : ''}`;
-      AuthService.sendMessage({
+      await FirestoreService.sendMessage({
         deliveryId: selectedDelivery.id,
         senderId: driverId,
         senderRole: 'driver',
@@ -205,12 +216,7 @@ export const DriverDashboard: React.FC = () => {
     }
   };
 
-  const getDriverTruck = () => {
-    const driver = AuthService.getDriverById(driverId);
-    return driver?.truckId ? TRUCK_OPTIONS.find(t => t.id === driver.truckId) : null;
-  };
-
-  const truck = getDriverTruck();
+  const truck = driverTruckId ? TRUCK_OPTIONS.find(t => t.id === driverTruckId) : null;
   const activeTrips = deliveries.filter(d => !['completed', 'cancelled'].includes(d.status));
   const completedTrips = deliveries.filter(d => ['completed', 'delivered'].includes(d.status));
 
@@ -529,7 +535,7 @@ export const DriverDashboard: React.FC = () => {
             <h2 className="text-base font-bold text-white">Dispatcher Messaging Stream</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {deliveries.map(delivery => {
-                const deliveryMessages = AuthService.getMessagesByDelivery(delivery.id);
+                const deliveryMessages = messagesMap[delivery.id] || [];
                 return (
                   <div key={delivery.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3">
                     <div className="border-b border-slate-800 pb-2">
