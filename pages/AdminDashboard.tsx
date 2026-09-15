@@ -39,7 +39,6 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FirestoreService, DeliveryData, DriverData, MessageData, BookingRequest } from '../services/firestoreService';
 import { TRUCK_OPTIONS } from '../constants';
-import { DealerDashboard } from '../components/DealerDashboard';
 import { wsTelemetryService } from '../services/websocket';
 
 // Fix for default marker icons in Leaflet
@@ -53,10 +52,6 @@ L.Icon.Default.mergeOptions({
 export const AdminDashboard: React.FC = () => {
   const userRole = localStorage.getItem('userRole');
   const isAdmin = userRole === 'admin';
-
-  if (userRole === 'dealer') {
-    return <DealerDashboard />;
-  }
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'deliveries' | 'drivers' | 'bookings' | 'map' | 'messages'>('overview');

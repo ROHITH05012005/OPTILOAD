@@ -11,6 +11,9 @@ build/
 dist/
 .firebase/
 .gradle/
+android/.gradle/
+android/app/build/
+android/build/
 
 # Environment variables
 .env
@@ -18,6 +21,7 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
 
 # SSL Certificates
 .cert/
@@ -29,6 +33,8 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+
 # Python & Cache
 __pycache__/
 *.py[cod]
@@ -37,10 +43,17 @@ __pycache__/
 ml/data/
 *.pth
 *.whl
+.venv/
+venv/
 
-# macOS AppleDouble
+# macOS / OS
 ._*
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
 
 # Vite
 .vite/
@@ -51,4 +64,3 @@ playwright-report/
 
 # Miscellaneous
 WhatsApp*
-

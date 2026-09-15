@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OptiLoad Presenter Remote</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#090d16">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(22, 30, 49, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Header */
+    header {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      z-index: 50;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-badge.disconnected {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .timer-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .timer-display {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 1px;
+    }
+    .timer-display.warning {
+      color: var(--warning);
+      animation: pulse 1s infinite;
+    }
+    .timer-display.danger {
+      color: var(--danger);
+      animation: pulse 0.5s infinite;
+    }
+    .timer-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* Main Tab Panels */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .panel {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      padding: 12px;
+      gap: 12px;
+    }
+    .panel.active {
+      display: flex;
+    }
+
+    /* Presentation Mode Panel */
+    .action-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .action-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 6px;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .action-btn:active {
+      transform: scale(0.94);
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent);
+    }
+    .action-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--accent);
+    }
+
+    /* Giant Slide Nav Buttons */
+    .slide-nav-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .btn-slide {
+      flex: 1;
+      border-radius: 18px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: transform 0.1s ease, filter 0.15s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .btn-slide:active {
+      transform: scale(0.97);
+      filter: brightness(1.2);
+    }
+    .btn-prev {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      flex: 0.8;
+    }
+    .btn-next {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      box-shadow: 0 10px 30px var(--accent-glow);
+      flex: 1.4;
+    }
+
+    /* Trackpad Panel */
+    .trackpad-box {
+      flex: 1;
+      background: radial-gradient(circle at center, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1.5px dashed rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      position: relative;
+      touch-action: none;
+    }
+    .trackpad-cue {
+      pointer-events: none;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .mouse-buttons-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      height: 70px;
+    }
+    .btn-mouse {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-mouse:active {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* Air Mouse Panel */
+    .air-mouse-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    .btn-trigger {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #0284c7 0%, #1e40af 100%);
+      border: 4px solid rgba(56, 189, 248, 0.6);
+      color: white;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 0 35px var(--accent-glow);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+      touch-action: none;
+    }
+    .btn-trigger.active {
+      transform: scale(0.92);
+      border-color: #38bdf8;
+      box-shadow: 0 0 50px #38bdf8;
+    }
+    .permission-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Shortcuts Panel */
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      flex: 1;
+      align-content: center;
+    }
+    .shortcut-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .shortcut-card:active {
+      transform: scale(0.95);
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    /* Bottom Navigation Bar */
+    nav {
+      height: 64px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--card-border);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 6px 0;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      z-index: 50;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    .nav-item.active {
+      color: var(--accent);
+    }
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Status & Timer -->
+  <header>
+    <div id="statusBadge" class="status-badge disconnected">
+      <div class="status-dot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+
+    <div class="timer-container">
+      <div id="timerDisplay" class="timer-display">15:00</div>
+      <button id="timerToggleBtn" class="timer-btn">Start</button>
+      <button id="timerResetBtn" class="timer-btn">Reset</button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main>
+
+    <!-- 1. SLIDES PANEL (Default Presentation Controller) -->
+    <section id="panelSlides" class="panel active">
+      <!-- Quick Presentation Actions -->
+      <div class="action-row">
+        <button class="action-btn" onclick="sendKey('f5')">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Start F5
+        </button>
+        <button class="action-btn" onclick="sendKey('shift_f5')">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Current
+        </button>
+        <button class="action-btn" onclick="sendKey('blank')">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          Black (B)
+        </button>
+        <button class="action-btn" onclick="sendKey('laser')">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+          Laser
+        </button>
+      </div>
+
+      <!-- Large Slide Navigation Buttons -->
+      <div class="slide-nav-container">
+        <button class="btn-slide btn-prev" onclick="sendKey('prev')">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg>
+          PREVIOUS SLIDE
+        </button>
+
+        <button class="btn-slide btn-next" onclick="sendKey('next')">
+          NEXT SLIDE
+          <svg width="34" height="34" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. TRACKPAD PANEL (Mouse Cursor Controller) -->
+    <section id="panelTrackpad" class="panel">
+      <div id="trackpad" class="trackpad-box">
+        <div class="trackpad-cue">
+          <strong>Precision Trackpad</strong><br>
+          1-Finger: Move Cursor<br>
+          Tap: Left Click<br>
+          2-Finger Tap: Right Click<br>
+          2-Finger Drag: Scroll
+        </div>
+      </div>
+
+      <div class="mouse-buttons-row">
+        <button class="btn-mouse" id="btnLeftClick">LEFT CLICK</button>
+        <button class="btn-mouse" id="btnRightClick">RIGHT CLICK</button>
+      </div>
+    </section>
+
+    <!-- 3. AIR MOUSE (Gyroscope Wand) -->
+    <section id="panelAir" class="panel">
+      <div class="air-mouse-container">
+        <button id="gyroPermBtn" class="permission-btn" style="display: none;" onclick="requestGyroPermission()">
+          Enable iPhone Gyro Sensor
+        </button>
+
+        <p style="text-align: center; color: var(--text-muted); font-size: 13px; max-width: 260px;">
+          Hold the trigger with your thumb and wave your iPhone like a laser pointer!
+        </p>
+
+        <div id="airTrigger" class="btn-trigger">
+          <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>
+          HOLD TO MOVE
+        </div>
+
+        <div class="mouse-buttons-row" style="width: 100%;">
+          <button class="btn-mouse" onclick="sendClick('left')">CLICK</button>
+          <button class="btn-mouse" onclick="sendClick('right')">MENU</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. SHORTCUTS & MEDIA -->
+    <section id="panelShortcuts" class="panel">
+      <div class="shortcuts-grid">
+        <div class="shortcut-card" onclick="sendKey('escape')">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="var(--danger)" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          Exit (ESC)
+        </div>
+        <div class="shortcut-card" onclick="sendKey('space')">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="var(--accent)" stroke-width="2"><rect x="3" y="10" width="18" height="4" rx="1"/></svg>
+          Spacebar
+        </div>
+        <div class="shortcut-card" onclick="sendKey('vol_up')">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="var(--success)" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          Vol Up
+        </div>
+        <div class="shortcut-card" onclick="sendKey('vol_down')">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="var(--warning)" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          Vol Down
+        </div>
+        <div class="shortcut-card" onclick="sendKey('vol_mute')">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="var(--danger)" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          Mute
+        </div>
+        <div class="shortcut-card" onclick="sendKey('enter')">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="var(--accent)" stroke-width="2"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+          Enter
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation Tabs -->
+  <nav>
+    <button class="nav-item active" onclick="switchTab('panelSlides', this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Slides
+    </button>
+    <button class="nav-item" onclick="switchTab('panelTrackpad', this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="4"/><line x1="12" y1="6" x2="12" y2="10"/></svg>
+      Trackpad
+    </button>
+    <button class="nav-item" onclick="switchTab('panelAir', this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+      Air Mouse
+    </button>
+    <button class="nav-item" onclick="switchTab('panelShortcuts', this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h8M6 16h12"/></svg>
+      Shortcuts
+    </button>
+  </nav>
+
+  <script>
+    // --- WebSocket Connection ---
+    let ws = null;
+    const statusBadge = document.getElementById('statusBadge');
+    const statusText = document.getElementById('statusText');
+
+    function connectWS() {
+      const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProto}//${window.location.hostname}:8765`;
+      
+      statusText.textContent = "Connecting...";
+      statusBadge.className = "status-badge disconnected";
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        statusText.textContent = "Connected";
+        statusBadge.className = "status-badge";
+        haptic(30);
+      };
+
+      ws.onclose = () => {
+        statusText.textContent = "Offline";
+        statusBadge.className = "status-badge disconnected";
+        setTimeout(connectWS, 2000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    function sendPayload(obj) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(obj));
+      }
+    }
+
+    function haptic(ms = 20) {
+      if (navigator.vibrate) {
+        navigator.vibrate(ms);
+      }
+    }
+
+    function sendKey(cmd) {
+      haptic(25);
+      sendPayload({ action: 'key', cmd: cmd });
+    }
+
+    function sendClick(button) {
+      haptic(20);
+      sendPayload({ action: 'click', button: button });
+    }
+
+    // --- Tab Switching ---
+    function switchTab(panelId, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.getElementById(panelId).classList.add('active');
+      btn.classList.add('active');
+      haptic(15);
+    }
+
+    // --- Presentation Countdown Timer ---
+    let timerTotalSeconds = 15 * 60;
+    let timerRemaining = timerTotalSeconds;
+    let timerInterval = null;
+    const timerDisplay = document.getElementById('timerDisplay');
+    const timerToggleBtn = document.getElementById('timerToggleBtn');
+    const timerResetBtn = document.getElementById('timerResetBtn');
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerRemaining / 60);
+      const secs = timerRemaining % 60;
+      timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      
+      timerDisplay.className = 'timer-display';
+      if (timerRemaining <= 60 && timerRemaining > 0) {
+        timerDisplay.classList.add('danger');
+      } else if (timerRemaining <= 180) {
+        timerDisplay.classList.add('warning');
+      }
+    }
+
+    timerToggleBtn.onclick = () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        timerToggleBtn.textContent = 'Start';
+      } else {
+        timerToggleBtn.textContent = 'Pause';
+        timerInterval = setInterval(() => {
+          if (timerRemaining > 0) {
+            timerRemaining--;
+            updateTimerDisplay();
+            if (timerRemaining === 60) haptic([100, 50, 100]); // 1-minute alert!
+          } else {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerToggleBtn.textContent = 'Done';
+            haptic([200, 100, 200, 100, 400]);
+          }
+        }, 1000);
+      }
+      haptic(15);
+    };
+
+    timerResetBtn.onclick = () => {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerRemaining = timerTotalSeconds;
+      timerToggleBtn.textContent = 'Start';
+      updateTimerDisplay();
+      haptic(15);
+    };
+
+    // --- Trackpad Logic ---
+    const trackpad = document.getElementById('trackpad');
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    let touchStartTime = 0;
+    let hasMoved = false;
+    const SENSITIVITY = 1.6;
+
+    trackpad.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        lastTouchX = touchStartX;
+        lastTouchY = touchStartY;
+        touchStartTime = Date.now();
+        hasMoved = false;
+      } else if (e.touches.length === 2) {
+        touchStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        lastTouchY = touchStartY;
+      }
+    }, { passive: false });
+
+    trackpad.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const curX = e.touches[0].clientX;
+        const curY = e.touches[0].clientY;
+        const dx = (curX - lastTouchX) * SENSITIVITY;
+        const dy = (curY - lastTouchY) * SENSITIVITY;
+
+        if (Math.abs(curX - touchStartX) > 4 || Math.abs(curY - touchStartY) > 4) {
+          hasMoved = true;
+        }
+
+        if (dx !== 0 || dy !== 0) {
+          sendPayload({ action: 'move', dx: dx, dy: dy });
+        }
+
+        lastTouchX = curX;
+        lastTouchY = curY;
+      } else if (e.touches.length === 2) {
+        // Two-finger scroll
+        const curY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const dy = curY - lastTouchY;
+        if (Math.abs(dy) > 2) {
+          sendPayload({ action: 'scroll', dy: dy > 0 ? 1 : -1 });
+          lastTouchY = curY;
+        }
+      }
+    }, { passive: false });
+
+    trackpad.addEventListener('touchend', (e) => {
+      if (e.touches.length === 0) {
+        const duration = Date.now() - touchStartTime;
+        if (!hasMoved && duration < 250) {
+          // Tap -> Left Click
+          sendClick('left');
+        }
+      } else if (e.changedTouches.length === 2) {
+        // Two-finger tap -> Right Click
+        sendClick('right');
+      }
+    });
+
+    // Dedicated Mouse Buttons
+    const btnLeft = document.getElementById('btnLeftClick');
+    const btnRight = document.getElementById('btnRightClick');
+    btnLeft.addEventListener('touchstart', () => sendClick('left'));
+    btnRight.addEventListener('touchstart', () => sendClick('right'));
+
+    // --- Air Mouse / Gyro Logic ---
+    const airTrigger = document.getElementById('airTrigger');
+    const gyroPermBtn = document.getElementById('gyroPermBtn');
+    let isAirActive = false;
+    let lastAlpha = null;
+    let lastBeta = null;
+    let lastGamma = null;
+
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      gyroPermBtn.style.display = 'block';
+    }
+
+    function requestGyroPermission() {
+      DeviceOrientationEvent.requestPermission()
+        .then(state => {
+          if (state === 'granted') {
+            gyroPermBtn.style.display = 'none';
+            haptic([50, 50]);
+          } else {
+            alert('Sensor permission denied');
+          }
+        })
+        .catch(console.error);
+    }
+
+    airTrigger.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      isAirActive = true;
+      airTrigger.classList.add('active');
+      lastAlpha = null;
+      lastBeta = null;
+      lastGamma = null;
+      haptic(30);
+    });
+
+    airTrigger.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      isAirActive = false;
+      airTrigger.classList.remove('active');
+    });
+
+    window.addEventListener('deviceorientation', (e) => {
+      if (!isAirActive) return;
+      if (lastGamma === null || lastBeta === null) {
+        lastGamma = e.gamma;
+        lastBeta = e.beta;
+        return;
+      }
+
+      const dX = (e.gamma - lastGamma) * 3.5;
+      const dY = (e.beta - lastBeta) * 3.5;
+
+      if (Math.abs(dX) > 0.4 || Math.abs(dY) > 0.4) {
+        sendPayload({ action: 'move', dx: Math.round(dX), dy: Math.round(dY) });
+      }
+
+      lastGamma = e.gamma;
+      lastBeta = e.beta;
+    });
+
+    // --- Prevent Screen Sleep during Presentation ---
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.log('WakeLock error:', err);
+      }
+    }
+    requestWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    });
+
+    // Initialize
+    connectWS();
+    updateTimerDisplay();
+  </script>
+</body>
+</html>

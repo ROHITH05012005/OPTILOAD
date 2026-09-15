@@ -30,7 +30,7 @@ export const LandingChatbot: React.FC = () => {
 
   const getBotResponse = (input: string): string => {
     const q = input.toLowerCase();
-    
+
     if (q.includes('3d') || q.includes('load') || q.includes('space') || q.includes('pack')) {
       return "Our 3D Bin Packing Optimizer uses weight-aware heuristics to maximize cargo container volume. It places heavy items on the floor first, stackable items next, and fragile cargo on top. This keeps the vehicle's Center of Gravity low and prevents structural damage.";
     }
@@ -113,7 +113,7 @@ export const LandingChatbot: React.FC = () => {
       {/* Chat Window */}
       {isOpen && (
         <div className="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-[380px] md:w-[420px] h-[550px] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-300">
-          
+
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-5 flex items-center justify-between text-white border-b border-white/5">
             <div className="flex items-center gap-3">
@@ -148,17 +148,16 @@ export const LandingChatbot: React.FC = () => {
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
-                
-                <div className={`p-3.5 rounded-2xl max-w-[78%] text-xs leading-relaxed ${
-                  msg.sender === 'user'
-                    ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-gray-800 text-gray-200 rounded-tl-none border border-gray-700/40'
-                }`}>
+
+                <div className={`p-3.5 rounded-2xl max-w-[78%] text-xs leading-relaxed ${msg.sender === 'user'
+                  ? 'bg-blue-600 text-white rounded-tr-none'
+                  : 'bg-gray-800 text-gray-200 rounded-tl-none border border-gray-700/40'
+                  }`}>
                   {typeof msg.text === 'string' ? msg.text : ((msg.text as any)?.text || JSON.stringify(msg.text))}
                 </div>
               </div>
             ))}
-            
+
             {isTyping && (
               <div className="flex gap-3 justify-start">
                 <div className="w-8 h-8 rounded-full bg-purple-600/20 border border-purple-500/20 flex items-center justify-center text-purple-400 flex-shrink-0">
@@ -171,7 +170,7 @@ export const LandingChatbot: React.FC = () => {
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
 

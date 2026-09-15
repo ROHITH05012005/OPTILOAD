@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { HashRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Inventory } from './pages/Inventory';
@@ -7,7 +7,6 @@ import { Trucks } from './pages/Trucks';
 import { Optimizer } from './pages/Optimizer';
 import { RoutePlanner } from './pages/RoutePlanner';
 import { Login } from './pages/Login';
-import { LandingPage } from './pages/LandingPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { DriverDashboard } from './pages/DriverDashboard';
 import { BookService } from './pages/BookService';
@@ -17,6 +16,9 @@ import { SeaOptimizer } from './pages/SeaOptimizer';
 import { AirRoutePlanner } from './pages/AirRoutePlanner';
 import { SeaRoutePlanner } from './pages/SeaRoutePlanner';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { DarkModeProvider } from './contexts/DarkModeContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { AuthModal } from './components/AuthModal';
 
 // Simple error boundary component
 class ErrorBoundary extends React.Component<
@@ -63,36 +65,45 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-import { DarkModeProvider } from './contexts/DarkModeContext';
-
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <DarkModeProvider>
-        <HashRouter>
-          <Routes>
-            {/* Public routes - no layout */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/book" element={<BookService />} />
+        <AuthProvider>
+          <HashRouter>
+            <AuthModal />
+            <Routes>
+              {/* Standalone login page */}
+              <Route path="/login" element={<Login />} />
 
-            {/* Protected routes with layout */}
-            <Route element={<ProtectedRoute><Layout><Outlet /></Layout></ProtectedRoute>}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/driver" element={<ProtectedRoute requiredRole="driver"><DriverDashboard /></ProtectedRoute>} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/trucks" element={<Trucks />} />
-              <Route path="/optimizer" element={<ProtectedRoute><Optimizer /></ProtectedRoute>} />
-              <Route path="/air-optimizer" element={<ProtectedRoute><AirOptimizer /></ProtectedRoute>} />
-              <Route path="/sea-optimizer" element={<ProtectedRoute><SeaOptimizer /></ProtectedRoute>} />
-              <Route path="/route" element={<ProtectedRoute><RoutePlanner /></ProtectedRoute>} />
-              <Route path="/air-route" element={<ProtectedRoute><AirRoutePlanner /></ProtectedRoute>} />
-              <Route path="/sea-route" element={<ProtectedRoute><SeaRoutePlanner /></ProtectedRoute>} />
-              <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
-            </Route>
-          </Routes>
-        </HashRouter>
+              {/* Main application wrapped with persistent layout */}
+              <Route element={<Layout><Outlet /></Layout>}>
+                {/* Landing redirect to Dashboard - users land directly into the app */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+                {/* Free Tier / Guest Features */}
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/trucks" element={<Trucks />} />
+                <Route path="/book" element={<BookService />} />
+
+                {/* Advanced Features (Pop up sign-in modal for guests) */}
+                <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/driver" element={<ProtectedRoute requiredRole="driver"><DriverDashboard /></ProtectedRoute>} />
+                <Route path="/optimizer" element={<ProtectedRoute><Optimizer /></ProtectedRoute>} />
+                <Route path="/air-optimizer" element={<ProtectedRoute><AirOptimizer /></ProtectedRoute>} />
+                <Route path="/sea-optimizer" element={<ProtectedRoute><SeaOptimizer /></ProtectedRoute>} />
+                <Route path="/route" element={<ProtectedRoute><RoutePlanner /></ProtectedRoute>} />
+                <Route path="/air-route" element={<ProtectedRoute><AirRoutePlanner /></ProtectedRoute>} />
+                <Route path="/sea-route" element={<ProtectedRoute><SeaRoutePlanner /></ProtectedRoute>} />
+                <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
+              </Route>
+
+              {/* Fallback to Dashboard */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </HashRouter>
+        </AuthProvider>
       </DarkModeProvider>
     </ErrorBoundary>
   );

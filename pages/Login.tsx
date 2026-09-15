@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, User, Shield, Package, ArrowLeft, Briefcase, Building, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { Truck, User, ArrowLeft, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
 import { 
   auth, 
   googleProvider, 
@@ -15,11 +15,8 @@ import {
   serverTimestamp 
 } from '../services/firebase';
 
-type RoleType = 'admin' | 'manager' | 'dealer' | 'driver';
-
 export const Login: React.FC = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const [selectedRole, setSelectedRole] = useState<RoleType>('dealer');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,27 +28,22 @@ export const Login: React.FC = () => {
   useEffect(() => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('driverId');
-    localStorage.removeItem('driverName');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userPhoto');
     localStorage.removeItem('username');
   }, []);
 
-  const completeUserSession = async (user: any, fallbackRole: RoleType) => {
-    let finalRole = fallbackRole;
+  const completeUserSession = async (user: any) => {
     try {
       const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
-      if (userSnap.exists() && userSnap.data()?.role) {
-        finalRole = userSnap.data().role as RoleType;
-      } else {
+      if (!userSnap.exists()) {
         await setDoc(userRef, {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName || name || user.email?.split('@')[0],
           photoURL: user.photoURL || '',
-          role: finalRole,
+          role: 'user',
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
         }, { merge: true });
@@ -60,19 +52,13 @@ export const Login: React.FC = () => {
       console.warn('Firestore user profile sync warning:', e);
     }
 
-    localStorage.setItem('userRole', finalRole);
-    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userRole', 'admin'); // Full access
+    localStorage.setItem('optiload_authenticated', 'true');
     localStorage.setItem('username', user.displayName || name || user.email?.split('@')[0] || 'User');
     localStorage.setItem('userEmail', user.email || '');
     if (user.photoURL) localStorage.setItem('userPhoto', user.photoURL);
 
-    if (finalRole === 'driver') {
-      localStorage.setItem('driverId', user.uid);
-      localStorage.setItem('driverName', user.displayName || 'Driver');
-      navigate('/driver');
-    } else {
-      navigate('/admin');
-    }
+    navigate('/dashboard');
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -89,10 +75,10 @@ export const Login: React.FC = () => {
         }
         const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
         await updateProfile(cred.user, { displayName: name.trim() });
-        await completeUserSession(cred.user, selectedRole);
+        await completeUserSession(cred.user);
       } else {
         const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-        await completeUserSession(cred.user, selectedRole);
+        await completeUserSession(cred.user);
       }
     } catch (err: any) {
       console.error('Email Auth Error:', err);
@@ -117,13 +103,11 @@ export const Login: React.FC = () => {
     setError('');
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      await completeUserSession(result.user, selectedRole);
+      await completeUserSession(result.user);
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
         setError('Google sign-in popup was closed.');
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setError('Domain not authorized in Firebase Console -> Authentication -> Authorized Domains.');
       } else {
         setError(err.message || 'Failed to authenticate with Google');
       }
@@ -132,34 +116,18 @@ export const Login: React.FC = () => {
     }
   };
 
-  // All roles available for sign-in
-  const allRoles: { key: RoleType; label: string; icon: any; color: string }[] = [
-    { key: 'admin', label: 'Admin', icon: Shield, color: 'from-red-500 to-orange-500' },
-    { key: 'manager', label: 'Manager', icon: Briefcase, color: 'from-blue-500 to-indigo-500' },
-    { key: 'dealer', label: 'Dealer', icon: Building, color: 'from-purple-500 to-pink-500' },
-    { key: 'driver', label: 'Driver', icon: User, color: 'from-emerald-500 to-teal-500' },
-  ];
-
-  // Only public roles available for registration (Admin/Manager are invite-only)
-  const publicRoles: { key: RoleType; label: string; icon: any; color: string }[] = [
-    { key: 'dealer', label: 'Dealer', icon: Building, color: 'from-purple-500 to-pink-500' },
-    { key: 'driver', label: 'Driver', icon: User, color: 'from-emerald-500 to-teal-500' },
-  ];
-
-  const roles = authMode === 'signup' ? publicRoles : allRoles;
-
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="max-w-5xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
+      <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
         {/* Left Form Section */}
-        <div className="w-full lg:w-1/2 bg-slate-900 p-8 lg:p-12 relative flex flex-col justify-between">
+        <div className="w-full lg:w-1/2 bg-slate-900 p-8 lg:p-10 relative flex flex-col justify-between">
           <div>
             <button
-              onClick={() => navigate('/')}
-              className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 text-sm font-medium mb-6"
+              onClick={() => navigate('/dashboard')}
+              className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-medium mb-6"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Home
+              Back to Dashboard
             </button>
 
             {/* Auth Mode Toggle (Sign In vs Sign Up) */}
@@ -167,76 +135,36 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setAuthMode('signin'); setError(''); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
                   authMode === 'signin' 
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
+                    ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md' 
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <LogIn className="w-4 h-4" /> Sign In
+                <LogIn className="w-3.5 h-3.5" /> Sign In
               </button>
               <button
                 type="button"
-                onClick={() => { 
-                  setAuthMode('signup'); 
-                  setError(''); 
-                  // Reset to a public role when switching to registration
-                  if (selectedRole === 'admin' || selectedRole === 'manager') {
-                    setSelectedRole('dealer');
-                  }
-                }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                onClick={() => { setAuthMode('signup'); setError(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
                   authMode === 'signup' 
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
+                    ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md' 
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <UserPlus className="w-4 h-4" /> Create Account
+                <UserPlus className="w-3.5 h-3.5" /> Create Account
               </button>
             </div>
 
             <div>
-              <h2 className="text-2xl lg:text-3xl font-bold text-white mb-1">
-                {authMode === 'signin' ? 'Sign in to OptiLoad' : 'Create your OptiLoad account'}
+              <h2 className="text-2xl font-bold text-white mb-1">
+                {authMode === 'signin' ? 'Sign in to OptiLoad' : 'Create your account'}
               </h2>
-              <p className="text-slate-400 text-sm mb-5">
+              <p className="text-slate-400 text-xs mb-5">
                 {authMode === 'signin' 
                   ? 'Access multi-modal routing, 3D cargo planning & fleet analytics' 
-                  : 'Get started with real-time logistics intelligence'}
+                  : 'Start optimizing cargo loads and transport routes in minutes'}
               </p>
-            </div>
-
-            {/* Role Picker (Sets role in Firebase Firestore) */}
-            <div className="mb-5">
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                {authMode === 'signup' ? 'I am registering as a' : 'Sign in as'}
-              </label>
-              <div className={`grid gap-2 ${authMode === 'signup' ? 'grid-cols-2' : 'grid-cols-4'}`}>
-                {roles.map((r) => {
-                  const Icon = r.icon;
-                  const isSelected = selectedRole === r.key;
-                  return (
-                    <button
-                      key={r.key}
-                      type="button"
-                      onClick={() => setSelectedRole(r.key)}
-                      className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl border transition-all text-xs font-medium ${
-                        isSelected 
-                          ? 'bg-purple-500/20 border-purple-500 text-white shadow-sm ring-1 ring-purple-500' 
-                          : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white hover:bg-slate-800'
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 mb-1 ${isSelected ? 'text-purple-400' : 'text-slate-400'}`} />
-                      {r.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {authMode === 'signup' && (
-                <p className="text-xs text-slate-500 mt-2">
-                  🔒 Admin &amp; Manager accounts are created by invitation only.
-                </p>
-              )}
             </div>
 
             {error && (
@@ -245,7 +173,7 @@ export const Login: React.FC = () => {
               </div>
             )}
 
-            {/* Real Firebase Email Form */}
+            {/* Form */}
             <form onSubmit={handleEmailAuth} className="space-y-3.5">
               {authMode === 'signup' && (
                 <div>
@@ -256,7 +184,7 @@ export const Login: React.FC = () => {
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
                       placeholder="Rohith Kumar"
                       required={authMode === 'signup'}
                     />
@@ -272,7 +200,7 @@ export const Login: React.FC = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
                     placeholder="user@optiload.in"
                     required
                   />
@@ -287,7 +215,7 @@ export const Login: React.FC = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
                     placeholder="••••••••"
                     required
                     minLength={6}
@@ -298,15 +226,15 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-3 rounded-xl font-semibold text-sm transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                className="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white py-3 rounded-xl font-semibold text-sm transition-all shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed mt-2"
               >
                 {loading ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Processing with Firebase...</span>
+                    <span>Authenticating...</span>
                   </div>
                 ) : (
-                  authMode === 'signin' ? `Sign In as ${selectedRole.toUpperCase()}` : `Create Account`
+                  authMode === 'signin' ? 'Sign In' : 'Create Account'
                 )}
               </button>
             </form>
@@ -321,12 +249,12 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* Real Google Auth Button */}
+            {/* Google Auth Button */}
             <button
               type="button"
               onClick={handleGoogleAuth}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 shadow-sm hover:shadow disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow disabled:opacity-60"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -340,37 +268,37 @@ export const Login: React.FC = () => {
 
           <div className="mt-6 pt-4 border-t border-slate-800/80 text-center">
             <p className="text-xs text-slate-500">
-              Firebase Auth & Cloud Firestore Active • OptiLoad India
+              OptiLoad India • Secure Cloud Authentication
             </p>
           </div>
         </div>
 
         {/* Right Side - Brand Banner */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-purple-700 via-indigo-700 to-slate-900 p-12 flex-col justify-between text-white relative overflow-hidden">
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-700 via-indigo-800 to-slate-900 p-10 flex-col justify-between text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
           
           <div className="relative z-10 flex items-center gap-3">
             <div className="bg-white/10 backdrop-blur-md p-2 rounded-xl border border-white/20">
               <Truck className="w-6 h-6 text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight">OptiLoad India</span>
+            <span className="font-bold text-lg tracking-tight">OptiLoad India</span>
           </div>
 
           <div className="relative z-10 my-auto py-8">
             <div className="inline-block px-3 py-1 bg-white/10 rounded-full text-xs font-semibold uppercase tracking-wider mb-4 border border-white/20">
               Enterprise Cloud
             </div>
-            <h3 className="text-3xl font-extrabold mb-4 leading-tight">
-              AI Multi-Modal Load Optimization & Logistics
+            <h3 className="text-2xl font-extrabold mb-3 leading-tight">
+              AI Multi-Modal Load Optimization &amp; Logistics
             </h3>
-            <p className="text-slate-200 text-sm leading-relaxed max-w-md">
-              Secure access for fleet administrators, depot managers, registered dealerships, and mobile drivers with real-time GPS telemetry and cloud sync.
+            <p className="text-slate-200 text-xs leading-relaxed max-w-sm">
+              Save truck load plans, run real-time physics packing, and access live multi-stop route navigation.
             </p>
           </div>
 
           <div className="relative z-10 flex items-center justify-between text-xs text-slate-300 border-t border-white/10 pt-4">
             <span>Production v2.4</span>
-            <span>Project: optiload-3d</span>
+            <span>FastAPI &amp; PyTorch</span>
           </div>
         </div>
       </div>
